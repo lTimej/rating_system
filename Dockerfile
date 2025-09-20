@@ -1,5 +1,5 @@
 # 多阶段构建 - 前端构建阶段
-FROM node:16-alpine AS frontend-builder
+FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -17,12 +17,12 @@ COPY frontend/ ./
 RUN npm run build
 
 # 后端构建阶段
-FROM golang:1.21-alpine AS backend-builder
+FROM golang:1.22-alpine AS backend-builder
 
 WORKDIR /app/backend
 
-# 安装必要的系统依赖
-RUN apk add --no-cache git gcc musl-dev sqlite-dev
+# 安装必要的系统依赖 (只需要git，不需要C编译器)
+RUN apk add --no-cache git
 
 # 复制后端go mod文件
 COPY backend/go.mod backend/go.sum ./
@@ -33,14 +33,18 @@ RUN go mod download
 # 复制后端源代码
 COPY backend/ ./
 
+# 设置环境变量 (禁用CGO使用纯Go SQLite驱动)
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+
 # 构建后端应用
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN go build -a -installsuffix cgo -o main .
 
 # 最终运行阶段
 FROM alpine:latest
 
 # 安装运行时依赖
-RUN apk --no-cache add ca-certificates sqlite
+RUN apk --no-cache add ca-certificates
 
 # 创建非root用户
 RUN addgroup -g 1001 -S appgroup && \
