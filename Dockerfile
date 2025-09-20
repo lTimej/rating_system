@@ -8,6 +8,7 @@ COPY frontend/package*.json ./
 
 # 安装前端依赖
 RUN npm ci --only=production
+RUN npm install
 
 # 复制前端源代码
 COPY frontend/ ./
