@@ -48,6 +48,10 @@
                 <i class="el-icon-user" />
                 <span>个人主页</span>
               </el-menu-item>
+              <el-menu-item index="/articles" @click="handleMenuClick">
+                <i class="el-icon-document" />
+                <span>文章</span>
+              </el-menu-item>
               <el-menu-item index="/ratings" @click="handleMenuClick">
                 <i class="el-icon-star-on" />
                 <span>评价管理</span>

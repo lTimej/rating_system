@@ -16,6 +16,8 @@ func SetupRoutes(r *gin.Engine) {
 	adminController := &controllers.AdminController{}
 	followController := &controllers.FollowController{}
 	commentController := &controllers.CommentController{}
+	articleController := &controllers.ArticleController{}
+	articleCommentController := &controllers.ArticleCommentController{}
 
 	// 公开路由
 	public := r.Group("/api")
@@ -57,6 +59,19 @@ func SetupRoutes(r *gin.Engine) {
 		protected.DELETE("/follow/:user_id", followController.UnfollowUser)
 		protected.GET("/following", followController.GetFollowing)
 		protected.GET("/followers", followController.GetFollowers)
+
+		// 文章相关
+		protected.POST("/articles", articleController.CreateArticle)
+		protected.GET("/articles", articleController.GetArticles)
+		protected.GET("/articles/:id", articleController.GetArticle)
+		protected.PUT("/articles/:id", articleController.UpdateArticle)
+		protected.DELETE("/articles/:id", articleController.DeleteArticle)
+		protected.POST("/articles/:id/like", articleController.LikeArticle)
+
+		// 文章评论相关
+		protected.POST("/articles/:id/comments", articleCommentController.CreateArticleComment)
+		protected.GET("/articles/:id/comments", articleCommentController.GetArticleComments)
+		protected.DELETE("/article-comments/:comment_id", articleCommentController.DeleteArticleComment)
 	}
 
 	// 管理员路由

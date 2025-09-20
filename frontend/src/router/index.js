@@ -44,6 +44,30 @@ const routes = [
     name: 'Admin',
     component: () => import('../views/Admin.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/articles',
+    name: 'Articles',
+    component: () => import('../views/Articles.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/articles/create',
+    name: 'ArticleCreate',
+    component: () => import('../views/ArticleEditor.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/articles/:id/edit',
+    name: 'ArticleEdit',
+    component: () => import('../views/ArticleEditor.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/articles/:id',
+    name: 'ArticleDetail',
+    component: () => import('../views/ArticleDetail.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

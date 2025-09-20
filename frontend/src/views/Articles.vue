@@ -1,0 +1,392 @@
+<template>
+  <Layout>
+    <div class="articles">
+      <div class="articles-header">
+        <h2>文章列表</h2>
+        <div class="header-actions">
+          <el-button type="primary" @click="$router.push('/articles/create')">
+            <i class="el-icon-edit" /> 写文章
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 筛选器 -->
+      <div class="filters">
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-select v-model="filters.category" placeholder="选择分类" clearable @change="loadArticles">
+              <el-option label="技术" value="tech" />
+              <el-option label="生活" value="life" />
+              <el-option label="学习" value="study" />
+              <el-option label="其他" value="other" />
+            </el-select>
+          </el-col>
+          <el-col :span="6">
+            <el-input
+              v-model="filters.authorId"
+              placeholder="作者ID"
+              clearable
+              @clear="loadArticles"
+              @keyup.enter="loadArticles"
+            />
+          </el-col>
+          <el-col :span="4">
+            <el-button @click="loadArticles">搜索</el-button>
+          </el-col>
+        </el-row>
+      </div>
+
+      <!-- 文章列表 -->
+      <div class="articles-list">
+        <div v-if="loading" class="loading">
+          <el-skeleton :rows="5" animated />
+        </div>
+        
+        <div v-else-if="articles.length === 0" class="empty-state">
+          <i class="el-icon-document" />
+          <p>暂无文章</p>
+        </div>
+        
+        <div v-else>
+          <div
+            v-for="article in articles"
+            :key="article.id"
+            class="article-item"
+            @click="viewArticle(article.id)"
+          >
+            <div class="article-cover" v-if="article.cover_image">
+              <img :src="article.cover_image" :alt="article.title" />
+            </div>
+            
+            <div class="article-content">
+              <h3 class="article-title">{{ article.title }}</h3>
+              <p class="article-summary">{{ article.summary || '暂无摘要' }}</p>
+              
+              <div class="article-meta">
+                <div class="meta-left">
+                  <span class="author">
+                    <i class="el-icon-user" /> {{ article.author.name || article.author.username }}
+                  </span>
+                  <span class="publish-time">
+                    <i class="el-icon-time" /> {{ formatTime(article.published_at || article.created_at) }}
+                  </span>
+                  <span class="category" v-if="article.category">
+                    <i class="el-icon-collection-tag" /> {{ getCategoryText(article.category) }}
+                  </span>
+                </div>
+                
+                <div class="meta-right">
+                  <span class="view-count">
+                    <i class="el-icon-view" /> {{ article.view_count }}
+                  </span>
+                  <span class="like-count">
+                    <i class="el-icon-star-off" /> {{ article.like_count }}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="article-tags" v-if="article.tags">
+                <el-tag
+                  v-for="tag in parseTagsArray(article.tags)"
+                  :key="tag"
+                  size="mini"
+                  type="info"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div class="pagination" v-if="total > 0">
+        <el-pagination
+          @current-change="handlePageChange"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          layout="prev, pager, next, total"
+        />
+      </div>
+    </div>
+  </Layout>
+</template>
+
+<script>
+import { mapGetters, mapActions } from 'vuex'
+import Layout from '@/components/Layout.vue'
+
+export default {
+  name: 'Articles',
+  components: {
+    Layout
+  },
+  data() {
+    return {
+      articles: [],
+      loading: false,
+      total: 0,
+      currentPage: 1,
+      pageSize: 10,
+      filters: {
+        category: '',
+        authorId: ''
+      }
+    }
+  },
+  computed: {
+    ...mapGetters('auth', ['currentUser'])
+  },
+  async created() {
+    await this.loadArticles()
+  },
+  methods: {
+    async loadArticles() {
+      this.loading = true
+      try {
+        const params = {
+          page: this.currentPage,
+          page_size: this.pageSize
+        }
+        
+        if (this.filters.category) {
+          params.category = this.filters.category
+        }
+        if (this.filters.authorId) {
+          params.author_id = this.filters.authorId
+        }
+
+        const response = await this.$http.get('/articles', { params })
+        this.articles = response.data.articles || []
+        this.total = response.data.total || 0
+      } catch (error) {
+        this.$message.error('加载文章失败')
+        this.articles = []
+        this.total = 0
+      } finally {
+        this.loading = false
+      }
+    },
+
+    handlePageChange(page) {
+      this.currentPage = page
+      this.loadArticles()
+    },
+
+    viewArticle(articleId) {
+      this.$router.push(`/articles/${articleId}`)
+    },
+
+    formatTime(time) {
+      if (!time) return ''
+      return new Date(time).toLocaleString('zh-CN')
+    },
+
+    getCategoryText(category) {
+      const categoryMap = {
+        tech: '技术',
+        life: '生活',
+        study: '学习',
+        other: '其他'
+      }
+      return categoryMap[category] || category
+    },
+
+    parseTagsArray(tags) {
+      if (!tags) return []
+      try {
+        return JSON.parse(tags)
+      } catch {
+        return tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.articles {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.articles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.articles-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.filters {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.articles-list {
+  min-height: 400px;
+}
+
+.loading {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.article-item {
+  display: flex;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.article-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
+}
+
+.article-cover {
+  width: 200px;
+  height: 120px;
+  margin-right: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.article-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.article-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.article-summary {
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 15px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #999;
+}
+
+.meta-left {
+  display: flex;
+  gap: 15px;
+}
+
+.meta-right {
+  display: flex;
+  gap: 15px;
+}
+
+.author {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.article-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination {
+  margin-top: 30px;
+  text-align: center;
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .articles {
+    padding: 15px;
+  }
+  
+  .articles-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .filters .el-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .article-item {
+    flex-direction: column;
+    padding: 15px;
+  }
+  
+  .article-cover {
+    width: 100%;
+    height: 200px;
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+  
+  .article-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .meta-left,
+  .meta-right {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+</style>

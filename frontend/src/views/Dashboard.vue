@@ -153,6 +153,43 @@
         </el-row>
       </div>
 
+      <!-- 最新文章展示区域 -->
+      <div class="articles-section">
+        <el-card class="articles-card">
+          <div slot="header" class="card-header">
+            <span>最新文章</span>
+            <el-button type="text" @click="$router.push('/articles')">查看更多</el-button>
+          </div>
+          
+          <div v-if="latestArticles.length === 0" class="empty-state">
+            <i class="el-icon-document" />
+            <p>暂无文章</p>
+          </div>
+          
+          <div v-else class="articles-list">
+            <div
+              v-for="article in latestArticles.slice(0, 5)"
+              :key="article.id"
+              class="article-item"
+              @click="viewArticle(article.id)"
+            >
+              <div class="article-info">
+                <h4 class="article-title">{{ article.title }}</h4>
+                <p class="article-summary">{{ article.summary || '暂无摘要' }}</p>
+                <div class="article-meta">
+                  <span class="author">{{ article.author.name || article.author.username }}</span>
+                  <span class="publish-time">{{ formatTime(article.published_at || article.created_at) }}</span>
+                  <div class="article-stats">
+                    <span><i class="el-icon-view" /> {{ article.view_count }}</span>
+                    <span><i class="el-icon-star-off" /> {{ article.like_count }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
       <!-- 用户作品展示区域 -->
       <div class="works-section">
         <el-card class="works-card">
@@ -372,6 +409,7 @@ export default {
       commentSubmitting: false,
       selectedFile: null,
       fileComments: [],
+      latestArticles: [],
       commentForm: {
         content: '',
         parent_id: null
@@ -432,11 +470,28 @@ export default {
           this.fetchUserRatings(),
           this.fetchFollowing(),
           this.fetchFollowers(),
-          this.fetchPublicFiles()
+          this.fetchPublicFiles(),
+          this.loadLatestArticles()
         ])
       } catch (error) {
         console.error('Failed to load data:', error)
       }
+    },
+
+    async loadLatestArticles() {
+      try {
+        const response = await this.$http.get('/articles', {
+          params: { page: 1, page_size: 5 }
+        })
+        this.latestArticles = response.data.articles || []
+      } catch (error) {
+        console.error('Failed to load articles:', error)
+        this.latestArticles = []
+      }
+    },
+
+    viewArticle(articleId) {
+      this.$router.push(`/articles/${articleId}`)
     },
     
     async submitRating() {
@@ -717,6 +772,74 @@ export default {
 
 .content-section {
   margin-bottom: 20px;
+}
+
+.articles-section {
+  margin-bottom: 20px;
+}
+
+.articles-card {
+  min-height: 300px;
+}
+
+.articles-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.article-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.article-item:hover {
+  background-color: #f8f9fa;
+  padding-left: 10px;
+}
+
+.article-item:last-child {
+  border-bottom: none;
+}
+
+.article-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-summary {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #999;
+}
+
+.article-meta .author {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.article-stats {
+  display: flex;
+  gap: 10px;
 }
 
 .works-section {
