@@ -158,6 +158,52 @@ const actions = {
         message: error.response?.data?.error || '取消关注失败' 
       }
     }
+  },
+
+  // 文件评论相关
+  async createFileComment({ commit }, { fileId, content, parentId }) {
+    try {
+      const response = await axios.post(`/files/${fileId}/comments`, {
+        content,
+        parent_id: parentId
+      })
+      return { 
+        success: true, 
+        comment: response.data.comment 
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '发表评论失败' 
+      }
+    }
+  },
+
+  async getFileComments({ commit }, fileId) {
+    try {
+      const response = await axios.get(`/files/${fileId}/comments`)
+      return { 
+        success: true, 
+        comments: response.data.comments || [] 
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '获取评论失败' 
+      }
+    }
+  },
+
+  async deleteFileComment({ commit }, commentId) {
+    try {
+      await axios.delete(`/comments/${commentId}`)
+      return { success: true }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '删除评论失败' 
+      }
+    }
   }
 }
 

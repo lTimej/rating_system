@@ -15,6 +15,7 @@ func SetupRoutes(r *gin.Engine) {
 	ratingController := &controllers.RatingController{}
 	adminController := &controllers.AdminController{}
 	followController := &controllers.FollowController{}
+	commentController := &controllers.CommentController{}
 
 	// 公开路由
 	public := r.Group("/api")
@@ -39,6 +40,11 @@ func SetupRoutes(r *gin.Engine) {
 		protected.GET("/files/:id", fileController.GetFile)
 		protected.GET("/files/:id/download", fileController.DownloadFile)
 		protected.DELETE("/files/:id", fileController.DeleteFile)
+
+		// 评论相关 - 放在文件路由之后，避免冲突
+		protected.POST("/files/:id/comments", commentController.CreateFileComment)
+		protected.GET("/files/:id/comments", commentController.GetFileComments)
+		protected.DELETE("/comments/:comment_id", commentController.DeleteFileComment)
 
 		// 评价相关
 		protected.POST("/ratings", ratingController.CreateRating)

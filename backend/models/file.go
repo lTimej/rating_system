@@ -31,6 +31,7 @@ type File struct {
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
-	User    User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Ratings []Rating `json:"ratings,omitempty" gorm:"foreignKey:FileID"`
+	User     User          `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Ratings  []Rating      `json:"ratings,omitempty" gorm:"foreignKey:FileID"`
+	Comments []FileComment `json:"comments,omitempty" gorm:"foreignKey:FileID"`
 }

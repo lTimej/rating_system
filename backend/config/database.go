@@ -30,6 +30,7 @@ func InitDatabase() {
 		&models.Rating{},
 		&models.Feedback{},
 		&models.Follow{},
+		&models.FileComment{},
 	)
 
 	if err != nil {

@@ -36,3 +36,4 @@ type Feedback struct {
 	Rating Rating `json:"rating,omitempty" gorm:"foreignKey:RatingID"`
 	User   User   `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
+
