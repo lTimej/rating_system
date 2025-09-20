@@ -535,4 +535,107 @@ export default {
   color: #999;
   margin-top: 4px;
 }
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .ratings {
+    max-width: 100%;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .page-header h2 {
+    font-size: 20px;
+  }
+  
+  .ratings-tabs {
+    padding: 15px;
+  }
+  
+  .rating-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .rater-info, .rated-info {
+    gap: 8px;
+  }
+  
+  .rater-details h4 {
+    font-size: 14px;
+  }
+  
+  .rating-content p {
+    font-size: 13px;
+  }
+  
+  .rating-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .rating-actions {
+    align-self: flex-end;
+    gap: 5px;
+  }
+  
+  .rating-actions .el-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .rating-meta {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ratings-tabs {
+    padding: 10px;
+  }
+  
+  .page-header h2 {
+    font-size: 18px;
+  }
+  
+  .rating-card :deep(.el-card__body) {
+    padding: 15px;
+  }
+  
+  .rater-info, .rated-info {
+    gap: 6px;
+  }
+  
+  .rater-details h4 {
+    font-size: 13px;
+  }
+  
+  .rating-content p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .rating-time, .file-info {
+    font-size: 11px;
+  }
+  
+  .rating-actions .el-button {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  
+  .empty-state {
+    padding: 40px 15px;
+  }
+  
+  .empty-state i {
+    font-size: 36px;
+  }
+}
 </style>

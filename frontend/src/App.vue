@@ -97,4 +97,174 @@ export default {
 .mt-20 {
   margin-top: 20px;
 }
+
+/* 全局移动端响应式样式 */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    padding: 15px;
+  }
+  
+  .card {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .header {
+    padding: 15px 0;
+    margin-bottom: 20px;
+  }
+  
+  .header h1 {
+    font-size: 24px;
+  }
+  
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .form-control {
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+  }
+  
+  .header {
+    padding: 12px 0;
+    margin-bottom: 15px;
+  }
+  
+  .header h1 {
+    font-size: 20px;
+  }
+  
+  .btn-primary {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+  
+  .form-control {
+    padding: 8px;
+    font-size: 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+}
+
+/* Element UI 组件移动端优化 */
+@media (max-width: 768px) {
+  .el-dialog {
+    width: 95% !important;
+    margin-top: 5vh !important;
+  }
+  
+  .el-dialog__body {
+    padding: 15px 20px !important;
+  }
+  
+  .el-form-item__label {
+    font-size: 13px !important;
+  }
+  
+  .el-input__inner {
+    font-size: 13px !important;
+  }
+  
+  .el-button {
+    font-size: 13px !important;
+  }
+  
+  .el-tabs__item {
+    font-size: 13px !important;
+  }
+  
+  .el-card__header {
+    padding: 15px 20px !important;
+  }
+  
+  .el-card__body {
+    padding: 15px 20px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .el-dialog {
+    width: 98% !important;
+    margin: 2vh auto !important;
+  }
+  
+  .el-dialog__header {
+    padding: 15px 20px 10px !important;
+  }
+  
+  .el-dialog__body {
+    padding: 10px 20px !important;
+  }
+  
+  .el-dialog__footer {
+    padding: 10px 20px 20px !important;
+  }
+  
+  .el-form-item__label {
+    font-size: 12px !important;
+  }
+  
+  .el-input__inner {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+  
+  .el-button {
+    font-size: 12px !important;
+    padding: 8px 15px !important;
+  }
+  
+  .el-tabs__item {
+    font-size: 12px !important;
+    padding: 0 15px !important;
+  }
+  
+  .el-card__header {
+    padding: 12px 15px !important;
+  }
+  
+  .el-card__body {
+    padding: 12px 15px !important;
+  }
+  
+  .el-rate {
+    font-size: 14px !important;
+  }
+  
+  .el-rate__text {
+    font-size: 12px !important;
+  }
+}
 </style>

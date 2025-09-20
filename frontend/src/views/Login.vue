@@ -165,4 +165,69 @@ export default {
 .login-footer a:hover {
   text-decoration: underline;
 }
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 15px;
+  }
+  
+  .login-card {
+    padding: 30px;
+    max-width: 100%;
+  }
+  
+  .login-header h2 {
+    font-size: 22px;
+  }
+  
+  .login-header p {
+    font-size: 13px;
+  }
+  
+  .login-button {
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    padding: 25px;
+    border-radius: 8px;
+  }
+  
+  .login-header {
+    margin-bottom: 25px;
+  }
+  
+  .login-header h2 {
+    font-size: 20px;
+  }
+  
+  .login-header p {
+    font-size: 12px;
+  }
+  
+  .login-form {
+    margin-bottom: 15px;
+  }
+  
+  .login-button {
+    height: 42px;
+    font-size: 14px;
+  }
+  
+  .login-footer {
+    padding-top: 15px;
+  }
+  
+  .login-footer p {
+    font-size: 13px;
+  }
+}
 </style>

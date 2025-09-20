@@ -2,7 +2,7 @@
   <Layout>
     <div class="profile">
       <el-row :gutter="20">
-        <el-col :span="8">
+        <el-col :xs="24" :sm="24" :md="8" :lg="8">
           <el-card class="profile-card">
             <div class="profile-header">
               <el-avatar :size="80" :src="currentUser.avatar" icon="el-icon-user-solid" />
@@ -35,7 +35,7 @@
           </el-card>
         </el-col>
         
-        <el-col :span="16">
+        <el-col :xs="24" :sm="24" :md="16" :lg="16">
           <el-tabs v-model="activeTab" class="profile-tabs">
             <el-tab-pane label="我的作品" name="files">
               <div class="tab-header">
@@ -631,5 +631,177 @@ export default {
 
 .feedback-stats {
   color: #67c23a;
+}
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .profile {
+    max-width: 100%;
+  }
+  
+  .profile-card {
+    margin-bottom: 20px;
+  }
+  
+  .profile-header {
+    padding: 20px 0;
+  }
+  
+  .profile-header h3 {
+    font-size: 18px;
+  }
+  
+  .profile-info {
+    margin: 15px 0;
+  }
+  
+  .info-item {
+    margin-bottom: 10px;
+  }
+  
+  .info-item label {
+    font-size: 13px;
+  }
+  
+  .info-item span {
+    font-size: 13px;
+  }
+  
+  .edit-btn {
+    width: 100%;
+    font-size: 14px;
+  }
+  
+  .tab-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .tab-header h4 {
+    font-size: 16px;
+  }
+  
+  .file-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .file-card :deep(.el-card__body) {
+    padding: 15px;
+  }
+  
+  .file-content {
+    gap: 10px;
+  }
+  
+  .file-info h5 {
+    font-size: 14px;
+  }
+  
+  .file-info p {
+    font-size: 13px;
+  }
+  
+  .file-meta {
+    font-size: 11px;
+  }
+  
+  .rating-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .rating-content {
+    font-size: 13px;
+  }
+  
+  .rating-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header {
+    padding: 15px 0;
+  }
+  
+  .profile-header .el-avatar {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  
+  .profile-header h3 {
+    font-size: 16px;
+  }
+  
+  .profile-info {
+    margin: 12px 0;
+  }
+  
+  .info-item {
+    margin-bottom: 8px;
+  }
+  
+  .info-item label {
+    font-size: 12px;
+  }
+  
+  .info-item span {
+    font-size: 12px;
+  }
+  
+  .edit-btn {
+    font-size: 13px;
+    padding: 8px 15px;
+  }
+  
+  .tab-header h4 {
+    font-size: 15px;
+  }
+  
+  .file-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+  
+  .file-info h5 {
+    font-size: 13px;
+  }
+  
+  .file-info p {
+    font-size: 12px;
+  }
+  
+  .file-meta {
+    font-size: 10px;
+  }
+  
+  .file-actions .el-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .rating-item {
+    padding: 15px 0;
+  }
+  
+  .rating-content {
+    font-size: 12px;
+  }
+  
+  .rating-footer {
+    font-size: 11px;
+  }
+  
+  .empty-state {
+    padding: 40px 15px;
+  }
+  
+  .empty-state i {
+    font-size: 36px;
+  }
 }
 </style>

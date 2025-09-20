@@ -11,7 +11,7 @@
       </div>
 
       <el-row :gutter="20" class="stats-section">
-        <el-col :span="6" v-if="isStudent || isExpert">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent || isExpert">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-number">{{ receivedRatings.length }}</div>
@@ -21,7 +21,7 @@
           </el-card>
         </el-col>
         
-        <el-col :span="6" v-if="isStudent || isExpert">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent || isExpert">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-number">{{ givenRatings.length }}</div>
@@ -31,7 +31,7 @@
           </el-card>
         </el-col>
         
-        <el-col :span="6" v-if="isExpert">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isExpert">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-number">{{ following.length }}</div>
@@ -41,7 +41,7 @@
           </el-card>
         </el-col>
         
-        <el-col :span="6" v-if="isStudent">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent">
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-number">{{ followers.length }}</div>
@@ -54,7 +54,7 @@
 
       <div class="content-section">
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-card class="content-card">
               <div slot="header" class="card-header">
                 <span>最新公开评价</span>
@@ -107,7 +107,7 @@
             </el-card>
           </el-col>
           
-          <el-col :span="12">
+          <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-card class="content-card">
               <div slot="header" class="card-header">
                 <span>快速操作</span>
@@ -483,5 +483,107 @@ export default {
   justify-content: flex-start;
   height: 48px;
   font-size: 14px;
+}
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .dashboard {
+    max-width: 100%;
+  }
+  
+  .welcome-content h2 {
+    font-size: 20px;
+  }
+  
+  .welcome-content p {
+    font-size: 14px;
+  }
+  
+  .stats-section {
+    margin-bottom: 15px;
+  }
+  
+  .stat-card :deep(.el-card__body) {
+    padding: 15px;
+  }
+  
+  .stat-number {
+    font-size: 24px;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+  }
+  
+  .stat-icon {
+    font-size: 30px;
+    right: 15px;
+  }
+  
+  .content-card {
+    height: auto;
+    margin-bottom: 15px;
+  }
+  
+  .rating-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .rating-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .rating-feedback {
+    align-self: flex-end;
+  }
+  
+  .quick-actions {
+    gap: 10px;
+  }
+  
+  .quick-actions .el-button {
+    height: 40px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-card :deep(.el-card__body) {
+    padding: 20px;
+  }
+  
+  .welcome-content h2 {
+    font-size: 18px;
+  }
+  
+  .stat-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+  
+  .stat-number {
+    font-size: 20px;
+  }
+  
+  .stat-icon {
+    font-size: 24px;
+    right: 12px;
+  }
+  
+  .rating-item {
+    padding: 12px 0;
+  }
+  
+  .rating-content {
+    font-size: 13px;
+  }
+  
+  .rating-feedback .el-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
 }
 </style>

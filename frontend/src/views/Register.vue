@@ -233,4 +233,69 @@ export default {
 .register-footer a:hover {
   text-decoration: underline;
 }
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .register-container {
+    padding: 15px;
+  }
+  
+  .register-card {
+    padding: 30px;
+    max-width: 100%;
+  }
+  
+  .register-header h2 {
+    font-size: 22px;
+  }
+  
+  .register-header p {
+    font-size: 13px;
+  }
+  
+  .register-button {
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 10px;
+  }
+  
+  .register-card {
+    padding: 25px;
+    border-radius: 8px;
+  }
+  
+  .register-header {
+    margin-bottom: 25px;
+  }
+  
+  .register-header h2 {
+    font-size: 20px;
+  }
+  
+  .register-header p {
+    font-size: 12px;
+  }
+  
+  .register-form {
+    margin-bottom: 15px;
+  }
+  
+  .register-button {
+    height: 42px;
+    font-size: 14px;
+  }
+  
+  .register-footer {
+    padding-top: 15px;
+  }
+  
+  .register-footer p {
+    font-size: 13px;
+  }
+}
 </style>
