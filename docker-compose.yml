@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rating-system-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/root/data
+      - ./uploads:/root/uploads
+    environment:
+      - GIN_MODE=release
+      - DB_PATH=/root/data/rating_system.db
+    restart: unless-stopped
+    networks:
+      - rating-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rating-system-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - rating-network
+
+networks:
+  rating-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
+  uploads:
+    driver: local
