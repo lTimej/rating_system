@@ -86,3 +86,18 @@ type ArticleCommentRating struct {
 	Rater   User           `json:"rater,omitempty" gorm:"foreignKey:RaterID"`
 	Rated   User           `json:"rated,omitempty" gorm:"foreignKey:RatedID"`
 }
+
+// ArticlePush 文章推送模型
+type ArticlePush struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	ArticleID uint      `json:"article_id" gorm:"not null"` // 文章ID
+	UserID    uint      `json:"user_id" gorm:"not null"`    // 接收推送的用户ID
+	AdminID   uint      `json:"admin_id" gorm:"not null"`   // 推送的管理员ID
+	IsRead    bool      `json:"is_read" gorm:"default:false"` // 是否已读
+	CreatedAt time.Time `json:"created_at"`
+
+	// Relationships
+	Article Article `json:"article,omitempty" gorm:"foreignKey:ArticleID"`
+	User    User    `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Admin   User    `json:"admin,omitempty" gorm:"foreignKey:AdminID"`
+}

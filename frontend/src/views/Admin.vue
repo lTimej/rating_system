@@ -40,10 +40,10 @@
         <el-col :span="6">
           <el-card class="stat-card">
             <div class="stat-content">
-              <div class="stat-number">{{ stats.total_ratings || 0 }}</div>
-              <div class="stat-label">总评价数</div>
+              <div class="stat-number">{{ stats.total_articles || 0 }}</div>
+              <div class="stat-label">总文章数</div>
             </div>
-            <i class="el-icon-star-on stat-icon" />
+            <i class="el-icon-document stat-icon" />
           </el-card>
         </el-col>
       </el-row>
@@ -120,44 +120,56 @@
           </div>
         </el-tab-pane>
         
-        <el-tab-pane label="评价管理" name="ratings">
-          <el-table :data="ratings" v-loading="loadingRatings" stripe>
+        <el-tab-pane label="文章管理" name="articles">
+          <div class="tab-header">
+            <div class="filters">
+              <el-select v-model="articleFilters.status" placeholder="筛选状态" clearable @change="fetchArticles">
+                <el-option label="草稿" value="draft" />
+                <el-option label="已发布" value="published" />
+                <el-option label="已归档" value="archived" />
+              </el-select>
+            </div>
+          </div>
+          
+          <el-table :data="articles" v-loading="loadingArticles" stripe>
             <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column label="评价者" width="120">
+            <el-table-column prop="title" label="标题" show-overflow-tooltip />
+            <el-table-column label="作者" width="120">
               <template slot-scope="scope">
                 <div class="user-info">
-                  <el-avatar :size="24" :src="scope.row.rater.avatar" icon="el-icon-user-solid" />
-                  <span>{{ scope.row.rater.name }}</span>
+                  <el-avatar :size="24" :src="scope.row.author.avatar" icon="el-icon-user-solid" />
+                  <span>{{ scope.row.author.name || scope.row.author.username }}</span>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="被评价者" width="120">
+            <el-table-column prop="status" label="状态" width="100">
               <template slot-scope="scope">
-                <div class="user-info">
-                  <el-avatar :size="24" :src="scope.row.rated.avatar" icon="el-icon-user-solid" />
-                  <span>{{ scope.row.rated.name }}</span>
-                </div>
+                <el-tag :type="getStatusType(scope.row.status)">
+                  {{ getStatusText(scope.row.status) }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="score" label="评分" width="100">
-              <template slot-scope="scope">
-                <el-rate :value="scope.row.score" disabled show-score text-color="#ff9900" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="content" label="评价内容" show-overflow-tooltip />
+            <el-table-column prop="view_count" label="浏览量" width="100" />
+            <el-table-column prop="like_count" label="点赞数" width="100" />
             <el-table-column prop="created_at" label="创建时间" width="180">
               <template slot-scope="scope">
                 {{ formatTime(scope.row.created_at) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100">
+            <el-table-column label="操作" width="150">
               <template slot-scope="scope">
                 <el-button
                   size="mini"
-                  type="danger"
-                  @click="deleteRating(scope.row.id)"
+                  type="primary"
+                  @click="pushArticle(scope.row)"
                 >
-                  删除
+                  推送
+                </el-button>
+                <el-button
+                  size="mini"
+                  @click="viewArticle(scope.row.id)"
+                >
+                  查看
                 </el-button>
               </template>
             </el-table-column>
@@ -165,10 +177,10 @@
           
           <div class="pagination">
             <el-pagination
-              @current-change="handleRatingPageChange"
-              :current-page="ratingPagination.page"
-              :page-size="ratingPagination.limit"
-              :total="ratingPagination.total"
+              @current-change="handleArticlePageChange"
+              :current-page="articlePagination.page"
+              :page-size="articlePagination.limit"
+              :total="articlePagination.total"
               layout="total, prev, pager, next"
             />
           </div>
@@ -255,6 +267,72 @@
         <el-button type="primary" @click="updateUser" :loading="updatingUser">保存</el-button>
       </div>
     </el-dialog>
+
+    <!-- 推送文章对话框 -->
+    <el-dialog
+      title="推送文章"
+      :visible.sync="showPushDialog"
+      width="600px"
+    >
+      <div class="push-dialog-content">
+        <div class="article-info" v-if="selectedArticle">
+          <h4>{{ selectedArticle.title }}</h4>
+          <p class="article-summary">{{ selectedArticle.summary || '暂无摘要' }}</p>
+          <div class="article-meta">
+            <span>作者：{{ selectedArticle.author.name || selectedArticle.author.username }}</span>
+            <span>状态：{{ getStatusText(selectedArticle.status) }}</span>
+          </div>
+        </div>
+
+        <el-divider>选择推送用户</el-divider>
+
+        <div class="user-selection">
+          <div class="selection-header">
+            <el-input
+              v-model="userSearchKeyword"
+              placeholder="搜索用户..."
+              prefix-icon="el-icon-search"
+              @input="searchUsers"
+              style="width: 300px; margin-right: 10px;"
+            />
+            <el-button @click="selectAllUsers" size="small">全选</el-button>
+            <el-button @click="clearSelection" size="small">清空</el-button>
+          </div>
+
+          <div class="user-list">
+            <el-checkbox-group v-model="selectedUserIds">
+              <div
+                v-for="user in filteredUsers"
+                :key="user.id"
+                class="user-item"
+              >
+                <el-checkbox :label="user.id">
+                  <div class="user-info">
+                    <el-avatar :size="24" :src="user.avatar" icon="el-icon-user-solid" />
+                    <span class="user-name">{{ user.name || user.username }}</span>
+                    <el-tag size="mini" :type="getRoleType(user.role)">
+                      {{ getRoleText(user.role) }}
+                    </el-tag>
+                  </div>
+                </el-checkbox>
+              </div>
+            </el-checkbox-group>
+          </div>
+        </div>
+      </div>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="showPushDialog = false">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="submitPush"
+          :loading="pushSubmitting"
+          :disabled="selectedUserIds.length === 0"
+        >
+          推送给 {{ selectedUserIds.length }} 个用户
+        </el-button>
+      </div>
+    </el-dialog>
   </Layout>
 </template>
 
@@ -271,16 +349,25 @@ export default {
     return {
       activeTab: 'users',
       loadingUsers: false,
-      loadingRatings: false,
+      loadingArticles: false,
       creatingUser: false,
       updatingUser: false,
+      pushSubmitting: false,
       
       stats: {},
       users: [],
-      ratings: [],
+      articles: [],
+      selectedArticle: null,
+      selectedUserIds: [],
+      userSearchKeyword: '',
+      showPushDialog: false,
       
       userFilters: {
         role: ''
+      },
+      
+      articleFilters: {
+        status: ''
       },
       
       userPagination: {
@@ -289,7 +376,7 @@ export default {
         total: 0
       },
       
-      ratingPagination: {
+      articlePagination: {
         page: 1,
         limit: 20,
         total: 0
@@ -354,7 +441,19 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('auth', ['currentUser'])
+    ...mapGetters('auth', ['currentUser']),
+    
+    filteredUsers() {
+      if (!this.userSearchKeyword) {
+        return this.users
+      }
+      const keyword = this.userSearchKeyword.toLowerCase()
+      return this.users.filter(user => 
+        (user.name && user.name.toLowerCase().includes(keyword)) ||
+        (user.username && user.username.toLowerCase().includes(keyword)) ||
+        (user.email && user.email.toLowerCase().includes(keyword))
+      )
+    }
   },
   async created() {
     await this.loadData()
@@ -364,7 +463,7 @@ export default {
       await Promise.all([
         this.fetchStats(),
         this.fetchUsers(),
-        this.fetchRatings()
+        this.fetchArticles()
       ])
     },
     
@@ -399,21 +498,25 @@ export default {
       }
     },
     
-    async fetchRatings() {
-      this.loadingRatings = true
+    async fetchArticles() {
+      this.loadingArticles = true
       try {
         const params = {
-          page: this.ratingPagination.page,
-          limit: this.ratingPagination.limit
+          page: this.articlePagination.page,
+          limit: this.articlePagination.limit
         }
         
-        const response = await this.$http.get('/admin/ratings', { params })
-        this.ratings = response.data.ratings
-        this.ratingPagination.total = response.data.total
+        if (this.articleFilters.status) {
+          params.status = this.articleFilters.status
+        }
+        
+        const response = await this.$http.get('/admin/articles', { params })
+        this.articles = response.data.articles
+        this.articlePagination.total = response.data.total
       } catch (error) {
-        this.$message.error('获取评价列表失败')
+        this.$message.error('获取文章列表失败')
       } finally {
-        this.loadingRatings = false
+        this.loadingArticles = false
       }
     },
     
@@ -553,6 +656,75 @@ export default {
       return roleMap[role] || '未知'
     },
     
+    // 文章相关方法
+    handleArticlePageChange(page) {
+      this.articlePagination.page = page
+      this.fetchArticles()
+    },
+
+    getStatusType(status) {
+      const statusMap = {
+        draft: 'info',
+        published: 'success',
+        archived: 'warning'
+      }
+      return statusMap[status] || 'info'
+    },
+
+    getStatusText(status) {
+      const statusMap = {
+        draft: '草稿',
+        published: '已发布',
+        archived: '已归档'
+      }
+      return statusMap[status] || '未知'
+    },
+
+    pushArticle(article) {
+      this.selectedArticle = article
+      this.selectedUserIds = []
+      this.userSearchKeyword = ''
+      this.showPushDialog = true
+    },
+
+    viewArticle(articleId) {
+      this.$router.push(`/articles/${articleId}`)
+    },
+
+    searchUsers() {
+      // 搜索功能由computed属性filteredUsers处理
+    },
+
+    selectAllUsers() {
+      this.selectedUserIds = this.filteredUsers.map(user => user.id)
+    },
+
+    clearSelection() {
+      this.selectedUserIds = []
+    },
+
+    async submitPush() {
+      if (this.selectedUserIds.length === 0) {
+        this.$message.warning('请选择要推送的用户')
+        return
+      }
+
+      this.pushSubmitting = true
+      try {
+        const response = await this.$http.post('/admin/articles/push', {
+          article_id: this.selectedArticle.id,
+          user_ids: this.selectedUserIds
+        })
+
+        this.$message.success(`成功推送给 ${response.data.pushed_count} 个用户`)
+        this.showPushDialog = false
+      } catch (error) {
+        this.$message.error(error.response?.data?.error || '推送失败')
+      } finally {
+        this.pushSubmitting = false
+      }
+    },
+
     formatTime(time) {
       return new Date(time).toLocaleString('zh-CN')
     }
@@ -643,5 +815,78 @@ export default {
 .pagination {
   margin-top: 20px;
   text-align: center;
+}
+
+/* 推送对话框样式 */
+.push-dialog-content {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.article-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.article-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.article-summary {
+  margin: 0 0 8px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.article-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+  color: #999;
+}
+
+.user-selection {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.selection-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.user-list {
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.user-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.user-item .user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>

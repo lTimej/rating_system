@@ -94,9 +94,10 @@ func SetupRoutes(r *gin.Engine) {
 		admin.PUT("/users/:id", adminController.UpdateUser)
 		admin.DELETE("/users/:id", adminController.DeleteUser)
 
-		// 评价管理
-		admin.GET("/ratings", adminController.GetRatings)
-		admin.DELETE("/ratings/:id", adminController.DeleteRating)
+		// 文章管理
+		admin.GET("/articles", adminController.GetArticles)
+		admin.POST("/articles/push", adminController.PushArticle)
+		admin.GET("/articles/pushes", adminController.GetArticlePushes)
 
 		// 统计信息
 		admin.GET("/stats", adminController.GetStats)

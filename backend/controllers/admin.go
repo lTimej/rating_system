@@ -247,6 +247,7 @@ func (ac *AdminController) GetStats(c *gin.Context) {
 		TotalExperts  int64 `json:"total_experts"`
 		TotalRatings  int64 `json:"total_ratings"`
 		TotalFiles    int64 `json:"total_files"`
+		TotalArticles int64 `json:"total_articles"`
 	}
 
 	config.DB.Model(&models.User{}).Count(&stats.TotalUsers)
@@ -254,8 +255,135 @@ func (ac *AdminController) GetStats(c *gin.Context) {
 	config.DB.Model(&models.User{}).Where("role = ?", models.RoleExpert).Count(&stats.TotalExperts)
 	config.DB.Model(&models.Rating{}).Count(&stats.TotalRatings)
 	config.DB.Model(&models.File{}).Count(&stats.TotalFiles)
+	config.DB.Model(&models.Article{}).Count(&stats.TotalArticles)
 
 	c.JSON(http.StatusOK, gin.H{
 		"stats": stats,
+	})
+}
+
+// GetArticles 获取文章列表（管理员）
+func (ac *AdminController) GetArticles(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
+
+	offset := (page - 1) * limit
+
+	var articles []models.Article
+	var total int64
+
+	query := config.DB.Model(&models.Article{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	query.Count(&total)
+
+	if err := query.Offset(offset).Limit(limit).
+		Preload("Author").
+		Order("created_at DESC").
+		Find(&articles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"articles": articles,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+	})
+}
+
+// PushArticle 推送文章给用户
+func (ac *AdminController) PushArticle(c *gin.Context) {
+	adminID, _ := c.Get("user_id")
+
+	var req struct {
+		ArticleID uint   `json:"article_id" binding:"required"`
+		UserIDs   []uint `json:"user_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 检查文章是否存在
+	var article models.Article
+	if err := config.DB.First(&article, req.ArticleID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		return
+	}
+
+	// 检查用户是否存在
+	var users []models.User
+	if err := config.DB.Where("id IN ?", req.UserIDs).Find(&users).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Some users not found"})
+		return
+	}
+
+	if len(users) != len(req.UserIDs) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Some users not found"})
+		return
+	}
+
+	// 创建推送记录
+	var pushes []models.ArticlePush
+	for _, userID := range req.UserIDs {
+		// 检查是否已经推送过
+		var existingPush models.ArticlePush
+		if err := config.DB.Where("article_id = ? AND user_id = ?", req.ArticleID, userID).First(&existingPush).Error; err == nil {
+			continue // 已经推送过，跳过
+		}
+
+		pushes = append(pushes, models.ArticlePush{
+			ArticleID: req.ArticleID,
+			UserID:    userID,
+			AdminID:   adminID.(uint),
+		})
+	}
+
+	if len(pushes) > 0 {
+		if err := config.DB.Create(&pushes).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push articles"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Articles pushed successfully",
+		"pushed_count": len(pushes),
+	})
+}
+
+// GetArticlePushes 获取文章推送记录
+func (ac *AdminController) GetArticlePushes(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	offset := (page - 1) * limit
+
+	var pushes []models.ArticlePush
+	var total int64
+
+	config.DB.Model(&models.ArticlePush{}).Count(&total)
+
+	if err := config.DB.Offset(offset).Limit(limit).
+		Preload("Article").
+		Preload("User").
+		Preload("Admin").
+		Order("created_at DESC").
+		Find(&pushes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushes"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pushes": pushes,
+		"total":  total,
+		"page":   page,
+		"limit":  limit,
 	})
 }
