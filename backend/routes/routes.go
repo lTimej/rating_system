@@ -34,6 +34,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// 文件相关
 		protected.POST("/files", fileController.UploadFile)
+		protected.GET("/files/public", fileController.GetPublicFiles)
 		protected.GET("/files/user/:user_id", fileController.GetUserFiles)
 		protected.GET("/files/:id", fileController.GetFile)
 		protected.GET("/files/:id/download", fileController.DownloadFile)

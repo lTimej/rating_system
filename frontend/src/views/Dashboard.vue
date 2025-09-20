@@ -152,6 +152,61 @@
           </el-col>
         </el-row>
       </div>
+
+      <!-- 用户作品展示区域 -->
+      <div class="works-section">
+        <el-card class="works-card">
+          <div slot="header" class="card-header">
+            <span>最新用户作品</span>
+            <el-button type="text" @click="refreshPublicFiles">刷新</el-button>
+          </div>
+          
+          <div v-if="publicFiles.length === 0" class="empty-state">
+            <i class="el-icon-folder-opened" />
+            <p>暂无公开作品</p>
+          </div>
+          
+          <div v-else class="works-grid">
+            <div
+              v-for="file in publicFiles.slice(0, 8)"
+              :key="file.id"
+              class="work-item"
+              @click="viewFile(file)"
+            >
+              <div class="work-preview">
+                <div class="file-icon">
+                  <i :class="getFileIcon(file.file_type)" />
+                </div>
+                <div v-if="isImageFile(file)" class="image-preview">
+                  <img :src="getFilePreview(file)" :alt="file.title || file.file_name" />
+                </div>
+              </div>
+              
+              <div class="work-info">
+                <h4 class="work-title">{{ file.title || file.file_name }}</h4>
+                <p class="work-description" v-if="file.description">{{ file.description }}</p>
+                <div class="work-meta">
+                  <span class="author">{{ file.user.name || file.user.username }}</span>
+                  <span class="upload-time">{{ formatTime(file.created_at) }}</span>
+                </div>
+                <div class="work-stats">
+                  <span class="file-size">{{ formatFileSize(file.file_size) }}</span>
+                  <span class="file-type">{{ getFileTypeText(file.file_type) }}</span>
+                </div>
+              </div>
+              
+              <div class="work-actions">
+                <el-button size="mini" type="text" @click.stop="downloadFile(file.id)">
+                  <i class="el-icon-download" /> 下载
+                </el-button>
+                <el-button size="mini" type="text" @click.stop="viewUserProfile(file.user.id)">
+                  <i class="el-icon-user" /> 作者
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
     </div>
 
     <!-- 评价对话框 -->
@@ -232,7 +287,7 @@ export default {
   computed: {
     ...mapGetters('auth', ['currentUser', 'isStudent', 'isExpert', 'isAdmin']),
     ...mapGetters('rating', ['publicRatings', 'receivedRatings', 'givenRatings']),
-    ...mapGetters('user', ['following', 'followers']),
+    ...mapGetters('user', ['following', 'followers', 'publicFiles']),
     
     roleType() {
       const roleMap = {
@@ -257,7 +312,7 @@ export default {
   },
   methods: {
     ...mapActions('rating', ['fetchPublicRatings', 'fetchUserRatings', 'createRating', 'createFeedback']),
-    ...mapActions('user', ['fetchFollowing', 'fetchFollowers']),
+    ...mapActions('user', ['fetchFollowing', 'fetchFollowers', 'fetchPublicFiles']),
     
     async loadData() {
       try {
@@ -265,7 +320,8 @@ export default {
           this.fetchPublicRatings(),
           this.fetchUserRatings(),
           this.fetchFollowing(),
-          this.fetchFollowers()
+          this.fetchFollowers(),
+          this.fetchPublicFiles()
         ])
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -326,6 +382,85 @@ export default {
     
     formatTime(time) {
       return new Date(time).toLocaleString('zh-CN')
+    },
+
+    // 作品相关方法
+    async refreshPublicFiles() {
+      try {
+        await this.fetchPublicFiles()
+        this.$message.success('刷新成功')
+      } catch (error) {
+        this.$message.error('刷新失败')
+      }
+    },
+
+    getFileIcon(fileType) {
+      const iconMap = {
+        'image': 'el-icon-picture-outline',
+        'video': 'el-icon-video-camera',
+        'document': 'el-icon-document',
+        'other': 'el-icon-files'
+      }
+      return iconMap[fileType] || 'el-icon-files'
+    },
+
+    getFileTypeText(fileType) {
+      const typeMap = {
+        'image': '图片',
+        'video': '视频',
+        'document': '文档',
+        'other': '其他'
+      }
+      return typeMap[fileType] || '未知'
+    },
+
+    isImageFile(file) {
+      return file.file_type === 'image'
+    },
+
+    getFilePreview(file) {
+      // 这里应该返回文件的预览URL，暂时返回占位符
+      return `/api/files/${file.id}/preview`
+    },
+
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    },
+
+    viewFile(file) {
+      // 查看文件详情
+      this.$message.info(`查看文件: ${file.title || file.file_name}`)
+    },
+
+    async downloadFile(fileId) {
+      try {
+        const response = await this.$http.get(`/files/${fileId}/download`, {
+          responseType: 'blob'
+        })
+        
+        // 创建下载链接
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', 'file')
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        this.$message.success('下载开始')
+      } catch (error) {
+        this.$message.error('下载失败')
+      }
+    },
+
+    viewUserProfile(userId) {
+      // 查看用户资料
+      this.$message.info(`查看用户 ${userId} 的资料`)
     }
   }
 }
@@ -404,6 +539,128 @@ export default {
 
 .content-section {
   margin-bottom: 20px;
+}
+
+.works-section {
+  margin-bottom: 20px;
+}
+
+.works-card {
+  min-height: 400px;
+}
+
+.works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.work-item {
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.work-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.work-preview {
+  position: relative;
+  height: 120px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.file-icon {
+  font-size: 48px;
+  color: #999;
+}
+
+.image-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.work-info {
+  margin-bottom: 12px;
+}
+
+.work-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-description {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.work-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #999;
+}
+
+.author {
+  font-weight: 500;
+  color: #667eea;
+}
+
+.work-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #999;
+}
+
+.work-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.work-actions .el-button {
+  font-size: 12px;
+  padding: 4px 8px;
 }
 
 .content-card {
@@ -551,6 +808,31 @@ export default {
     height: 40px;
     font-size: 13px;
   }
+  
+  .works-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+  }
+  
+  .work-item {
+    padding: 12px;
+  }
+  
+  .work-preview {
+    height: 100px;
+  }
+  
+  .file-icon {
+    font-size: 36px;
+  }
+  
+  .work-title {
+    font-size: 14px;
+  }
+  
+  .work-description {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -586,6 +868,41 @@ export default {
   .rating-feedback .el-button {
     font-size: 11px;
     padding: 4px 8px;
+  }
+  
+  .works-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .work-item {
+    padding: 10px;
+  }
+  
+  .work-preview {
+    height: 80px;
+  }
+  
+  .file-icon {
+    font-size: 28px;
+  }
+  
+  .work-title {
+    font-size: 13px;
+  }
+  
+  .work-description {
+    font-size: 11px;
+  }
+  
+  .work-meta,
+  .work-stats {
+    font-size: 11px;
+  }
+  
+  .work-actions .el-button {
+    font-size: 11px;
+    padding: 2px 6px;
   }
 }
 </style>

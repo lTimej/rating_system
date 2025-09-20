@@ -3,6 +3,7 @@ import axios from 'axios'
 const state = {
   profile: null,
   files: [],
+  publicFiles: [],
   following: [],
   followers: []
 }
@@ -13,6 +14,9 @@ const mutations = {
   },
   SET_FILES(state, files) {
     state.files = files
+  },
+  SET_PUBLIC_FILES(state, files) {
+    state.publicFiles = files
   },
   ADD_FILE(state, file) {
     state.files.unshift(file)
@@ -57,6 +61,19 @@ const actions = {
       return { 
         success: false, 
         message: error.response?.data?.error || '获取文件列表失败' 
+      }
+    }
+  },
+
+  async fetchPublicFiles({ commit }) {
+    try {
+      const response = await axios.get('/files/public')
+      commit('SET_PUBLIC_FILES', response.data.files)
+      return { success: true }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '获取公开作品失败' 
       }
     }
   },
@@ -147,6 +164,7 @@ const actions = {
 const getters = {
   userProfile: state => state.profile,
   userFiles: state => state.files,
+  publicFiles: state => state.publicFiles,
   following: state => state.following,
   followers: state => state.followers,
   isFollowing: state => userId => {

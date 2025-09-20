@@ -196,6 +196,23 @@ func (fc *FileController) DeleteFile(c *gin.Context) {
 	})
 }
 
+func (fc *FileController) GetPublicFiles(c *gin.Context) {
+	var files []models.File
+	
+	// 获取所有公开的文件，按创建时间倒序排列
+	if err := config.DB.Where("is_public = ?", true).
+		Preload("User").
+		Order("created_at DESC").
+		Find(&files).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get public files"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"files": files,
+	})
+}
+
 func getFileType(mimeType string) models.FileType {
 	if strings.HasPrefix(mimeType, "image/") {
 		return models.FileTypeImage
