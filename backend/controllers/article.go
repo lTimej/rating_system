@@ -91,40 +91,79 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	query := config.DB.Model(&models.Article{})
-
-	// 只显示公开且已发布的文章（除非是查看自己的文章）
 	currentUserID, exists := c.Get("user_id")
-	if !exists || authorID != strconv.Itoa(int(currentUserID.(uint))) {
-		query = query.Where("is_public = ? AND status = ?", true, models.ArticleStatusPublished)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
 	}
 
-	// 按分类筛选
-	if category != "" {
-		query = query.Where("category = ?", category)
-	}
-
-	// 按作者筛选
-	if authorID != "" {
-		query = query.Where("author_id = ?", authorID)
-	}
-
-	// 按状态筛选（仅作者本人可见）
-	if status != "" && exists && authorID == strconv.Itoa(int(currentUserID.(uint))) {
-		query = query.Where("status = ?", status)
-	}
-
-	var total int64
-	query.Count(&total)
+	userRole, _ := c.Get("user_role")
+	role := userRole.(models.UserRole)
 
 	var articles []models.Article
-	if err := query.Preload("Author").
-		Order("created_at DESC").
-		Limit(pageSize).
-		Offset(offset).
-		Find(&articles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
-		return
+	var total int64
+
+	// 根据用户角色决定可见的文章
+	if role == models.RoleStudent {
+		// 学生只能看到推送给他们的文章
+		query := config.DB.Table("articles").
+			Joins("INNER JOIN article_pushes ON articles.id = article_pushes.article_id").
+			Where("article_pushes.user_id = ? AND articles.status = ?", currentUserID, models.ArticleStatusPublished)
+
+		// 按分类筛选
+		if category != "" {
+			query = query.Where("articles.category = ?", category)
+		}
+
+		// 按作者筛选
+		if authorID != "" {
+			query = query.Where("articles.author_id = ?", authorID)
+		}
+
+		query.Count(&total)
+
+		if err := query.Preload("Author").
+			Order("articles.created_at DESC").
+			Limit(pageSize).
+			Offset(offset).
+			Find(&articles).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+			return
+		}
+	} else {
+		// 专家和管理员可以看到所有公开且已发布的文章（或自己的文章）
+		query := config.DB.Model(&models.Article{})
+
+		// 只显示公开且已发布的文章（除非是查看自己的文章）
+		if authorID != strconv.Itoa(int(currentUserID.(uint))) {
+			query = query.Where("is_public = ? AND status = ?", true, models.ArticleStatusPublished)
+		}
+
+		// 按分类筛选
+		if category != "" {
+			query = query.Where("category = ?", category)
+		}
+
+		// 按作者筛选
+		if authorID != "" {
+			query = query.Where("author_id = ?", authorID)
+		}
+
+		// 按状态筛选（仅作者本人可见）
+		if status != "" && authorID == strconv.Itoa(int(currentUserID.(uint))) {
+			query = query.Where("status = ?", status)
+		}
+
+		query.Count(&total)
+
+		if err := query.Preload("Author").
+			Order("created_at DESC").
+			Limit(pageSize).
+			Offset(offset).
+			Find(&articles).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -138,7 +177,14 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 // GetArticle 获取单篇文章
 func (ac *ArticleController) GetArticle(c *gin.Context) {
 	articleID := c.Param("id")
-	currentUserID, _ := c.Get("user_id")
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userRole, _ := c.Get("user_role")
+	role := userRole.(models.UserRole)
 
 	var article models.Article
 	if err := config.DB.Preload("Author").First(&article, articleID).Error; err != nil {
@@ -146,11 +192,27 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 		return
 	}
 
-	// 检查权限：只有公开且已发布的文章或作者本人可以查看
-	if (!article.IsPublic || article.Status != models.ArticleStatusPublished) &&
-		article.AuthorID != currentUserID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-		return
+	// 根据用户角色检查访问权限
+	if role == models.RoleStudent {
+		// 学生只能访问推送给他们的文章
+		var push models.ArticlePush
+		if err := config.DB.Where("article_id = ? AND user_id = ?", articleID, currentUserID).First(&push).Error; err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+		
+		// 文章必须是已发布状态
+		if article.Status != models.ArticleStatusPublished {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Article not available"})
+			return
+		}
+	} else {
+		// 专家和管理员的权限检查：只有公开且已发布的文章或作者本人可以查看
+		if (!article.IsPublic || article.Status != models.ArticleStatusPublished) &&
+			article.AuthorID != currentUserID.(uint) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
 	}
 
 	// 增加浏览次数（不是作者本人访问时）

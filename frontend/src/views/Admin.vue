@@ -305,13 +305,17 @@
                 v-for="user in filteredUsers"
                 :key="user.id"
                 class="user-item"
+                :class="{ 'already-pushed': pushedUserIds.includes(user.id) }"
               >
-                <el-checkbox :label="user.id">
+                <el-checkbox :label="user.id" :disabled="pushedUserIds.includes(user.id)">
                   <div class="user-info">
                     <el-avatar :size="24" :src="user.avatar" icon="el-icon-user-solid" />
                     <span class="user-name">{{ user.name || user.username }}</span>
                     <el-tag size="mini" :type="getRoleType(user.role)">
                       {{ getRoleText(user.role) }}
+                    </el-tag>
+                    <el-tag v-if="pushedUserIds.includes(user.id)" size="mini" type="info">
+                      已推送
                     </el-tag>
                   </div>
                 </el-checkbox>
@@ -361,6 +365,7 @@ export default {
       selectedUserIds: [],
       userSearchKeyword: '',
       showPushDialog: false,
+      pushedUserIds: [], // 已推送的用户ID列表
       
       userFilters: {
         role: ''
@@ -680,10 +685,20 @@ export default {
       return statusMap[status] || '未知'
     },
 
-    pushArticle(article) {
+    async pushArticle(article) {
       this.selectedArticle = article
       this.selectedUserIds = []
       this.userSearchKeyword = ''
+      this.pushedUserIds = []
+      
+      // 获取已推送的用户列表
+      try {
+        const response = await this.$http.get(`/admin/articles/${article.id}/pushed-users`)
+        this.pushedUserIds = response.data.pushed_user_ids || []
+      } catch (error) {
+        console.error('Failed to get pushed users:', error)
+      }
+      
       this.showPushDialog = true
     },
 
@@ -696,7 +711,10 @@ export default {
     },
 
     selectAllUsers() {
-      this.selectedUserIds = this.filteredUsers.map(user => user.id)
+      // 只选择未推送的用户
+      this.selectedUserIds = this.filteredUsers
+        .filter(user => !this.pushedUserIds.includes(user.id))
+        .map(user => user.id)
     },
 
     clearSelection() {
@@ -716,7 +734,17 @@ export default {
           user_ids: this.selectedUserIds
         })
 
-        this.$message.success(`成功推送给 ${response.data.pushed_count} 个用户`)
+        // 根据推送结果显示不同的消息
+        const { pushed_count, skipped_count, message } = response.data
+        
+        if (pushed_count > 0 && skipped_count > 0) {
+          this.$message.success(message)
+        } else if (pushed_count > 0) {
+          this.$message.success(message)
+        } else {
+          this.$message.warning(message)
+        }
+        
         this.showPushDialog = false
       } catch (error) {
         this.$message.error(error.response?.data?.error || '推送失败')
@@ -888,5 +916,18 @@ export default {
 
 .dialog-footer {
   text-align: right;
+}
+
+.user-item.already-pushed {
+  background-color: #f5f7fa;
+  opacity: 0.7;
+}
+
+.user-item.already-pushed .user-info {
+  color: #909399;
+}
+
+.user-item.already-pushed .el-checkbox {
+  cursor: not-allowed;
 }
 </style>

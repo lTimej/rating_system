@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"rating_system/config"
 	"rating_system/models"
@@ -331,10 +332,15 @@ func (ac *AdminController) PushArticle(c *gin.Context) {
 
 	// 创建推送记录
 	var pushes []models.ArticlePush
+	var skippedUsers []uint
+	var skippedCount int
+
 	for _, userID := range req.UserIDs {
 		// 检查是否已经推送过
 		var existingPush models.ArticlePush
 		if err := config.DB.Where("article_id = ? AND user_id = ?", req.ArticleID, userID).First(&existingPush).Error; err == nil {
+			skippedUsers = append(skippedUsers, userID)
+			skippedCount++
 			continue // 已经推送过，跳过
 		}
 
@@ -352,10 +358,22 @@ func (ac *AdminController) PushArticle(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Articles pushed successfully",
-		"pushed_count": len(pushes),
-	})
+	// 构建响应消息
+	response := gin.H{
+		"pushed_count":  len(pushes),
+		"skipped_count": skippedCount,
+		"total_count":   len(req.UserIDs),
+	}
+
+	if len(pushes) > 0 && skippedCount > 0 {
+		response["message"] = fmt.Sprintf("成功推送给 %d 个用户，跳过 %d 个已推送的用户", len(pushes), skippedCount)
+	} else if len(pushes) > 0 {
+		response["message"] = fmt.Sprintf("成功推送给 %d 个用户", len(pushes))
+	} else {
+		response["message"] = "所有选中的用户都已经推送过此文章"
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetArticlePushes 获取文章推送记录
@@ -385,5 +403,68 @@ func (ac *AdminController) GetArticlePushes(c *gin.Context) {
 		"total":  total,
 		"page":   page,
 		"limit":  limit,
+	})
+}
+
+// GetUserPushedArticles 获取推送给用户的文章列表
+func (ac *AdminController) GetUserPushedArticles(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	offset := (page - 1) * limit
+
+	var pushes []models.ArticlePush
+	var total int64
+
+	config.DB.Model(&models.ArticlePush{}).Where("user_id = ?", userID).Count(&total)
+
+	if err := config.DB.Where("user_id = ?", userID).
+		Preload("Article").
+		Preload("Article.Author").
+		Preload("Admin").
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&pushes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushed articles"})
+		return
+	}
+
+	// 提取文章信息
+	articles := make([]models.Article, len(pushes))
+	for i, push := range pushes {
+		articles[i] = push.Article
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"articles": articles,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+	})
+}
+
+// GetArticlePushedUsers 获取文章已推送的用户列表
+func (ac *AdminController) GetArticlePushedUsers(c *gin.Context) {
+	articleID := c.Param("article_id")
+
+	var pushes []models.ArticlePush
+	if err := config.DB.Where("article_id = ?", articleID).
+		Preload("User").
+		Find(&pushes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushed users"})
+		return
+	}
+
+	// 提取用户ID列表
+	userIDs := make([]uint, len(pushes))
+	for i, push := range pushes {
+		userIDs[i] = push.UserID
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pushed_user_ids": userIDs,
+		"pushes":          pushes,
 	})
 }

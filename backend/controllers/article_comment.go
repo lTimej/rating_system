@@ -195,20 +195,44 @@ func (acc *ArticleCommentController) processCommentVisibility(comments []models.
 
 // GetLatestComments 获取最新的文章评论（用于首页显示）
 func (acc *ArticleCommentController) GetLatestComments(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	
-	// 获取最新的文章评论（包括回复）
-	var comments []models.ArticleComment
-	if err := config.DB.
-		Joins("JOIN articles ON articles.id = article_comments.article_id").
-		Where("articles.is_public = ? AND articles.status = ?", true, models.ArticleStatusPublished).
-		Preload("User").
-		Preload("Article").
-		Order("article_comments.created_at DESC").
-		Limit(10).
-		Find(&comments).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest comments"})
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
+	}
+
+	userRole, _ := c.Get("user_role")
+	role := userRole.(models.UserRole)
+
+	var comments []models.ArticleComment
+	
+	if role == models.RoleStudent {
+		// 学生只能看到推送文章的评论
+		if err := config.DB.
+			Joins("JOIN articles ON articles.id = article_comments.article_id").
+			Joins("JOIN article_pushes ON articles.id = article_pushes.article_id").
+			Where("article_pushes.user_id = ? AND articles.status = ?", userID, models.ArticleStatusPublished).
+			Preload("User").
+			Preload("Article").
+			Order("article_comments.created_at DESC").
+			Limit(10).
+			Find(&comments).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest comments"})
+			return
+		}
+	} else {
+		// 专家和管理员可以看到所有公开文章的评论
+		if err := config.DB.
+			Joins("JOIN articles ON articles.id = article_comments.article_id").
+			Where("articles.is_public = ? AND articles.status = ?", true, models.ArticleStatusPublished).
+			Preload("User").
+			Preload("Article").
+			Order("article_comments.created_at DESC").
+			Limit(10).
+			Find(&comments).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest comments"})
+			return
+		}
 	}
 
 	// 处理姓名可见性

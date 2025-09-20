@@ -57,13 +57,14 @@
           <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-card class="content-card">
               <div slot="header" class="card-header">
-                <span>最新公开文章评论</span>
+                <span>{{ isStudent ? '最新推送文章评论' : '最新公开文章评论' }}</span>
                 <el-button type="text" @click="$router.push('/articles')">查看更多</el-button>
               </div>
               
               <div v-if="latestComments.length === 0" class="empty-state">
                 <i class="el-icon-chat-line-square" />
-                <p>暂无文章评论</p>
+                <p>{{ isStudent ? '暂无推送文章评论' : '暂无文章评论' }}</p>
+                <p v-if="isStudent" class="empty-hint">管理员推送文章后会显示相关评论</p>
               </div>
               
               <div v-else class="comment-list">
@@ -1545,6 +1546,12 @@ export default {
     font-size: 11px;
     padding: 4px 8px;
   }
+}
+
+.empty-hint {
+  font-size: 12px !important;
+  color: #999 !important;
+  margin-top: 5px !important;
 }
 </style>
 

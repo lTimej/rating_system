@@ -2,11 +2,15 @@
   <Layout>
     <div class="articles">
       <div class="articles-header">
-        <h2>文章列表</h2>
+        <h2>{{ isStudent ? '推送文章' : '文章列表' }}</h2>
+        <p v-if="isStudent" class="student-notice">
+          <i class="el-icon-info"></i>
+          以下是管理员推送给您的文章
+        </p>
       </div>
 
-      <!-- 筛选器 -->
-      <div class="filters">
+      <!-- 筛选器 - 只对非学生用户显示 -->
+      <div v-if="!isStudent" class="filters">
         <el-row :gutter="20">
           <el-col :span="6">
             <el-select v-model="filters.category" placeholder="选择分类" clearable @change="loadArticles">
@@ -39,7 +43,8 @@
         
         <div v-else-if="articles.length === 0" class="empty-state">
           <i class="el-icon-document" />
-          <p>暂无文章</p>
+          <p>{{ isStudent ? '暂无推送文章' : '暂无文章' }}</p>
+          <p v-if="isStudent" class="empty-hint">管理员还没有推送文章给您</p>
         </div>
         
         <div v-else>
@@ -143,7 +148,11 @@ export default {
   },
   computed: {
     ...mapGetters('auth', ['currentUser']),
-    ...mapGetters('user', ['following'])
+    ...mapGetters('user', ['following']),
+    
+    isStudent() {
+      return this.currentUser && this.currentUser.role === 'student'
+    }
   },
   async created() {
     await this.loadArticles()
@@ -154,19 +163,32 @@ export default {
     async loadArticles() {
       this.loading = true
       try {
-        const params = {
-          page: this.currentPage,
-          page_size: this.pageSize
+        let response
+        
+        if (this.isStudent) {
+          // 学生用户获取推送的文章
+          const params = {
+            page: this.currentPage,
+            limit: this.pageSize
+          }
+          response = await this.$http.get('/my/pushed-articles', { params })
+        } else {
+          // 专家和管理员获取所有公开文章
+          const params = {
+            page: this.currentPage,
+            page_size: this.pageSize
+          }
+          
+          if (this.filters.category) {
+            params.category = this.filters.category
+          }
+          if (this.filters.authorId) {
+            params.author_id = this.filters.authorId
+          }
+
+          response = await this.$http.get('/articles', { params })
         }
         
-        if (this.filters.category) {
-          params.category = this.filters.category
-        }
-        if (this.filters.authorId) {
-          params.author_id = this.filters.authorId
-        }
-
-        const response = await this.$http.get('/articles', { params })
         this.articles = response.data.articles || []
         this.total = response.data.total || 0
       } catch (error) {
@@ -439,5 +461,20 @@ export default {
   .meta-right .el-button {
     margin-top: 5px;
   }
+}
+
+.student-notice {
+  margin: 10px 0 0 0;
+  color: #409EFF;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.empty-hint {
+  font-size: 14px !important;
+  color: #999 !important;
+  margin-top: 5px !important;
 }
 </style>

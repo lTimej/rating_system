@@ -80,6 +80,9 @@ func SetupRoutes(r *gin.Engine) {
 		protected.GET("/comments/:comment_id/ratings", commentRatingController.GetCommentRatings)
 		protected.GET("/users/:user_id/comment-ratings", commentRatingController.GetUserCommentRatings)
 		protected.DELETE("/comment-ratings/:rating_id", commentRatingController.DeleteCommentRating)
+
+		// 用户推送文章
+		protected.GET("/my/pushed-articles", adminController.GetUserPushedArticles)
 	}
 
 	// 管理员路由
@@ -98,6 +101,7 @@ func SetupRoutes(r *gin.Engine) {
 		admin.GET("/articles", adminController.GetArticles)
 		admin.POST("/articles/push", adminController.PushArticle)
 		admin.GET("/articles/pushes", adminController.GetArticlePushes)
+		admin.GET("/articles/:article_id/pushed-users", adminController.GetArticlePushedUsers)
 
 		// 统计信息
 		admin.GET("/stats", adminController.GetStats)
