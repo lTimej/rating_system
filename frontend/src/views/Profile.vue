@@ -407,7 +407,7 @@ export default {
     },
     
     downloadFile(fileId) {
-      window.open(`http://localhost:8080/api/files/${fileId}/download`, '_blank')
+      window.open(`/api/files/${fileId}/download`, '_blank')
     },
     
     resetUploadForm() {

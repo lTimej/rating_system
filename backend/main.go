@@ -4,6 +4,7 @@ import (
 	"log"
 	"rating_system/config"
 	"rating_system/routes"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +32,22 @@ func main() {
 
 	// 静态文件服务
 	r.Static("/uploads", "./uploads")
+
+	// 前端静态文件服务
+	r.Static("/static", "./static")
+	r.StaticFile("/", "./static/index.html")
+	r.StaticFile("/favicon.ico", "./static/favicon.ico")
+
+	// 处理前端路由 (Vue Router history mode)
+	r.NoRoute(func(c *gin.Context) {
+		// 如果是API请求，返回404
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.JSON(404, gin.H{"error": "API endpoint not found"})
+			return
+		}
+		// 否则返回前端应用
+		c.File("./static/index.html")
+	})
 
 	// 设置路由
 	routes.SetupRoutes(r)
