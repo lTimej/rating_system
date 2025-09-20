@@ -41,14 +41,15 @@ type Article struct {
 
 // ArticleComment 文章评论模型
 type ArticleComment struct {
-	ID        uint           `json:"id" gorm:"primaryKey"`
-	ArticleID uint           `json:"article_id" gorm:"not null"` // 文章ID
-	UserID    uint           `json:"user_id" gorm:"not null"`    // 评论者ID
-	Content   string         `json:"content" gorm:"not null"`    // 评论内容
-	ParentID  *uint          `json:"parent_id"`                  // 父评论ID，用于回复
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	ID               uint           `json:"id" gorm:"primaryKey"`
+	ArticleID        uint           `json:"article_id" gorm:"not null"`        // 文章ID
+	UserID           uint           `json:"user_id" gorm:"not null"`           // 评论者ID
+	Content          string         `json:"content" gorm:"not null"`           // 评论内容
+	ParentID         *uint          `json:"parent_id"`                         // 父评论ID，用于回复
+	IsAnonymousToOthers bool        `json:"is_anonymous_to_others" gorm:"default:true"` // 对其他人是否匿名（被回复者除外）
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
 	Article Article          `json:"article,omitempty" gorm:"foreignKey:ArticleID"`

@@ -492,37 +492,9 @@ export default {
 
     async loadLatestComments() {
       try {
-        // 由于后端没有直接获取所有评论的接口，我们需要先获取文章，然后获取评论
-        // 这里简化处理，实际项目中可以在后端添加专门的接口
-        const articlesResponse = await this.$http.get('/articles', {
-          params: { page: 1, page_size: 10 }
-        })
-        const articles = articlesResponse.data.articles || []
-        
-        let allComments = []
-        for (const article of articles.slice(0, 3)) { // 只取前3篇文章的评论
-          try {
-            const commentsResponse = await this.$http.get(`/articles/${article.id}/comments`)
-            const comments = commentsResponse.data.comments || []
-            // 扁平化评论（包括回复）
-            comments.forEach(comment => {
-              comment.article = article
-              allComments.push(comment)
-              if (comment.replies) {
-                comment.replies.forEach(reply => {
-                  reply.article = article
-                  allComments.push(reply)
-                })
-              }
-            })
-          } catch (error) {
-            // 忽略单个文章评论获取失败的情况
-          }
-        }
-        
-        // 按时间排序，取最新的5条
-        allComments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        this.latestComments = allComments.slice(0, 5)
+        // 使用新的API获取最新评论，已经应用了匿名逻辑
+        const response = await this.$http.get('/comments/latest')
+        this.latestComments = (response.data.comments || []).slice(0, 5)
       } catch (error) {
         console.error('Failed to load comments:', error)
         this.latestComments = []

@@ -71,6 +71,7 @@ func SetupRoutes(r *gin.Engine) {
 		// 文章评论相关
 		protected.POST("/articles/:id/comments", articleCommentController.CreateArticleComment)
 		protected.GET("/articles/:id/comments", articleCommentController.GetArticleComments)
+		protected.GET("/comments/latest", articleCommentController.GetLatestComments)
 		protected.DELETE("/article-comments/:comment_id", articleCommentController.DeleteArticleComment)
 	}
 
