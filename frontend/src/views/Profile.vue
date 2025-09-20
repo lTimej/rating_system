@@ -413,8 +413,44 @@ export default {
       }).catch(() => {})
     },
     
-    downloadFile(fileId) {
-      window.open(`/api/files/${fileId}/download`, '_blank')
+    async downloadFile(fileId) {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`/api/files/${fileId}/download`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        // 获取文件名
+        const contentDisposition = response.headers.get('Content-Disposition')
+        let filename = `file_${fileId}`
+        if (contentDisposition) {
+          const matches = contentDisposition.match(/filename=(.+)/)
+          if (matches) {
+            filename = matches[1]
+          }
+        }
+        
+        // 创建blob并下载
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Download error:', error)
+        this.$message.error('下载失败，请重试')
+      }
     },
     
     resetUploadForm() {

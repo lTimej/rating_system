@@ -87,7 +87,7 @@
                 {{ formatTime(scope.row.created_at) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200">
+            <el-table-column label="操作" width="220">
               <template slot-scope="scope">
                 <el-button size="mini" @click="editUser(scope.row)">编辑</el-button>
                 <el-button
