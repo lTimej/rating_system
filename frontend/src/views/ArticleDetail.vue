@@ -28,6 +28,15 @@
             
             <div class="meta-right">
               <el-button
+                v-if="article.author_id !== currentUser.id"
+                size="small"
+                :type="isFollowing(article.author_id) ? 'success' : 'info'"
+                @click="toggleFollow(article.author_id)"
+                :loading="followLoading"
+              >
+                {{ isFollowing(article.author_id) ? '已关注' : '关注作者' }}
+              </el-button>
+              <el-button
                 v-if="article.author_id === currentUser.id"
                 size="small"
                 @click="editArticle"
@@ -178,7 +187,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import Layout from '@/components/Layout.vue'
 
 export default {
@@ -192,6 +201,7 @@ export default {
       comments: [],
       loading: false,
       likeLoading: false,
+      followLoading: false,
       commentSubmitting: false,
       isLiked: false,
       commentForm: {
@@ -202,6 +212,7 @@ export default {
   },
   computed: {
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('user', ['following']),
     
     renderedContent() {
       if (!this.article?.content) return ''
@@ -215,8 +226,10 @@ export default {
   async created() {
     await this.loadArticle()
     await this.loadComments()
+    await this.loadFollowing()
   },
   methods: {
+    ...mapActions('user', ['fetchFollowing', 'followUser', 'unfollowUser']),
     async loadArticle() {
       this.loading = true
       try {
@@ -346,6 +359,43 @@ export default {
         return JSON.parse(tags)
       } catch {
         return tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      }
+    },
+
+    async loadFollowing() {
+      try {
+        await this.fetchFollowing()
+      } catch (error) {
+        console.error('Failed to load following:', error)
+      }
+    },
+
+    isFollowing(userId) {
+      return this.following.some(follow => follow.followed_id === userId)
+    },
+
+    async toggleFollow(userId) {
+      this.followLoading = true
+      try {
+        if (this.isFollowing(userId)) {
+          const result = await this.unfollowUser(userId)
+          if (result.success) {
+            this.$message.success('取消关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        } else {
+          const result = await this.followUser(userId)
+          if (result.success) {
+            this.$message.success('关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        }
+      } catch (error) {
+        this.$message.error('操作失败')
+      } finally {
+        this.followLoading = false
       }
     }
   }

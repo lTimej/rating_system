@@ -77,6 +77,15 @@
                   <span class="like-count">
                     <i class="el-icon-star-off" /> {{ article.like_count }}
                   </span>
+                  <el-button
+                    v-if="article.author.id !== currentUser.id"
+                    size="mini"
+                    :type="isFollowing(article.author.id) ? 'success' : 'primary'"
+                    @click.stop="toggleFollow(article.author.id)"
+                    :loading="followLoading[article.author.id]"
+                  >
+                    {{ isFollowing(article.author.id) ? '已关注' : '关注' }}
+                  </el-button>
                 </div>
               </div>
               
@@ -125,6 +134,7 @@ export default {
       total: 0,
       currentPage: 1,
       pageSize: 10,
+      followLoading: {},
       filters: {
         category: '',
         authorId: ''
@@ -132,12 +142,15 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('auth', ['currentUser'])
+    ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('user', ['following'])
   },
   async created() {
     await this.loadArticles()
+    await this.loadFollowing()
   },
   methods: {
+    ...mapActions('user', ['fetchFollowing', 'followUser', 'unfollowUser']),
     async loadArticles() {
       this.loading = true
       try {
@@ -195,6 +208,43 @@ export default {
         return JSON.parse(tags)
       } catch {
         return tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      }
+    },
+
+    async loadFollowing() {
+      try {
+        await this.fetchFollowing()
+      } catch (error) {
+        console.error('Failed to load following:', error)
+      }
+    },
+
+    isFollowing(userId) {
+      return this.following.some(follow => follow.followed_id === userId)
+    },
+
+    async toggleFollow(userId) {
+      this.$set(this.followLoading, userId, true)
+      try {
+        if (this.isFollowing(userId)) {
+          const result = await this.unfollowUser(userId)
+          if (result.success) {
+            this.$message.success('取消关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        } else {
+          const result = await this.followUser(userId)
+          if (result.success) {
+            this.$message.success('关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        }
+      } catch (error) {
+        this.$message.error('操作失败')
+      } finally {
+        this.$set(this.followLoading, userId, false)
       }
     }
   }
@@ -325,6 +375,7 @@ export default {
 .meta-right {
   display: flex;
   gap: 15px;
+  align-items: center;
 }
 
 .author {
@@ -382,6 +433,11 @@ export default {
   .meta-right {
     flex-direction: column;
     gap: 5px;
+    align-items: flex-start;
+  }
+  
+  .meta-right .el-button {
+    margin-top: 5px;
   }
 }
 </style>

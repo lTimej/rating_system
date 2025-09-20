@@ -41,11 +41,11 @@
           </el-card>
         </el-col>
         
-        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent">
-          <el-card class="stat-card">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <el-card class="stat-card clickable-card" @click.native="showFollowersDialog">
             <div class="stat-content">
               <div class="stat-number">{{ followers.length }}</div>
-              <div class="stat-label">关注我的专家</div>
+              <div class="stat-label">关注我的用户</div>
             </div>
             <i class="el-icon-view stat-icon" />
           </el-card>
@@ -328,6 +328,78 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 粉丝对话框 -->
+    <el-dialog
+      title="关注我的用户"
+      :visible.sync="showFollowersDialogVisible"
+      width="800px"
+      :before-close="closeFollowersDialog"
+    >
+      <div class="followers-dialog">
+        <div class="followers-stats">
+          <span>共 {{ followers.length }} 人关注了我</span>
+        </div>
+
+        <div v-if="followersLoading" class="followers-loading">
+          <el-skeleton :rows="3" animated />
+        </div>
+        
+        <div v-else-if="followers.length === 0" class="followers-empty">
+          <i class="el-icon-user" />
+          <p>还没有人关注你</p>
+          <p class="tip">发布优质内容来吸引更多关注者吧！</p>
+        </div>
+        
+        <div v-else class="followers-dialog-list">
+          <div
+            v-for="follow in followers"
+            :key="follow.id"
+            class="follower-dialog-item"
+          >
+            <div class="follower-dialog-avatar">
+              <img 
+                v-if="follow.follower.avatar" 
+                :src="follow.follower.avatar" 
+                :alt="follow.follower.name || follow.follower.username"
+              />
+              <div v-else class="default-dialog-avatar">
+                <i class="el-icon-user" />
+              </div>
+            </div>
+            
+            <div class="follower-dialog-info">
+              <div class="follower-dialog-basic">
+                <h4 class="follower-dialog-name">{{ follow.follower.name || follow.follower.username }}</h4>
+                <el-tag :type="getRoleType(follow.follower.role)" size="mini">
+                  {{ getRoleText(follow.follower.role) }}
+                </el-tag>
+              </div>
+              
+              <p class="follower-dialog-bio" v-if="follow.follower.bio">{{ follow.follower.bio }}</p>
+              
+              <div class="follow-dialog-info">
+                <span class="follow-dialog-time">
+                  <i class="el-icon-time" /> 
+                  关注时间：{{ formatTime(follow.created_at) }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="follower-dialog-actions">
+              <el-button
+                size="small"
+                :type="isFollowing(follow.follower.id) ? 'success' : 'primary'"
+                @click="toggleFollow(follow.follower.id)"
+                :loading="followLoading[follow.follower.id]"
+              >
+                {{ isFollowing(follow.follower.id) ? '已关注' : '回关' }}
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </Layout>
 </template>
 
@@ -351,7 +423,10 @@ export default {
       commentForm: {
         content: '',
         parent_id: null
-      }
+      },
+      showFollowersDialogVisible: false,
+      followersLoading: false,
+      followLoading: {}
     }
   },
   computed: {
@@ -382,7 +457,7 @@ export default {
   },
   methods: {
     ...mapActions('rating', ['fetchUserRatings']),
-    ...mapActions('user', ['fetchFollowing', 'fetchFollowers', 'fetchPublicFiles']),
+    ...mapActions('user', ['fetchFollowing', 'fetchFollowers', 'fetchPublicFiles', 'followUser', 'unfollowUser']),
     
     async loadData() {
       try {
@@ -600,6 +675,77 @@ export default {
       this.commentForm.parent_id = null
     },
 
+    // 粉丝对话框相关方法
+    async showFollowersDialog() {
+      this.showFollowersDialogVisible = true
+      await this.loadFollowersData()
+    },
+
+    async loadFollowersData() {
+      this.followersLoading = true
+      try {
+        await Promise.all([
+          this.fetchFollowers(),
+          this.fetchFollowing()
+        ])
+      } catch (error) {
+        this.$message.error('加载粉丝数据失败')
+      } finally {
+        this.followersLoading = false
+      }
+    },
+
+    closeFollowersDialog() {
+      this.showFollowersDialogVisible = false
+    },
+
+    isFollowing(userId) {
+      return this.following.some(follow => follow.followed_id === userId)
+    },
+
+    async toggleFollow(userId) {
+      this.$set(this.followLoading, userId, true)
+      try {
+        if (this.isFollowing(userId)) {
+          const result = await this.unfollowUser(userId)
+          if (result.success) {
+            this.$message.success('取消关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        } else {
+          const result = await this.followUser(userId)
+          if (result.success) {
+            this.$message.success('关注成功')
+          } else {
+            this.$message.error(result.message)
+          }
+        }
+      } catch (error) {
+        this.$message.error('操作失败')
+      } finally {
+        this.$set(this.followLoading, userId, false)
+      }
+    },
+
+    getRoleType(role) {
+      const roleMap = {
+        student: 'success',
+        expert: 'warning',
+        admin: 'danger'
+      }
+      return roleMap[role] || 'info'
+    },
+
+    getRoleText(role) {
+      const roleMap = {
+        student: '学生',
+        expert: '专家',
+        admin: '管理员'
+      }
+      return roleMap[role] || '用户'
+    },
+
     viewUserProfile(userId) {
       // 查看用户资料
       this.$message.info(`查看用户 ${userId} 的资料`)
@@ -646,6 +792,16 @@ export default {
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
 }
 
 .stat-card :deep(.el-card__body) {
@@ -1246,4 +1402,167 @@ export default {
     padding: 2px 6px;
   }
 }
+
+/* 粉丝对话框样式 */
+.followers-dialog {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.followers-stats {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e6e6e6;
+  color: #666;
+  font-size: 14px;
+}
+
+.followers-loading {
+  padding: 20px;
+}
+
+.followers-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.followers-empty i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #ddd;
+}
+
+.followers-empty p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.followers-empty .tip {
+  font-size: 12px;
+  color: #999;
+}
+
+.followers-dialog-list {
+  padding: 0;
+}
+
+.follower-dialog-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.follower-dialog-item:last-child {
+  border-bottom: none;
+}
+
+.follower-dialog-avatar {
+  width: 50px;
+  height: 50px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.follower-dialog-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.default-dialog-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 20px;
+}
+
+.follower-dialog-info {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.follower-dialog-basic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.follower-dialog-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.follower-dialog-bio {
+  margin: 0 0 6px 0;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.follow-dialog-info {
+  font-size: 11px;
+  color: #999;
+}
+
+.follow-dialog-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.follower-dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.follower-dialog-actions .el-button {
+  width: 70px;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* 粉丝对话框移动端样式 */
+@media (max-width: 768px) {
+  .followers-dialog {
+    max-height: 500px;
+  }
+  
+  .follower-dialog-item {
+    padding: 12px 0;
+  }
+  
+  .follower-dialog-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+  }
+  
+  .follower-dialog-name {
+    font-size: 13px;
+  }
+  
+  .follower-dialog-bio {
+    font-size: 11px;
+  }
+  
+  .follower-dialog-actions .el-button {
+    width: 60px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
 </style>
+

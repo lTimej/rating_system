@@ -12,24 +12,12 @@ type FollowController struct{}
 
 func (fc *FollowController) FollowUser(c *gin.Context) {
 	followerID, _ := c.Get("user_id")
-	followerRole, _ := c.Get("user_role")
 	followedID := c.Param("user_id")
 
-	// 专家才能关注学生
-	if followerRole.(models.UserRole) != models.RoleExpert {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only experts can follow users"})
-		return
-	}
-
-	// 检查被关注用户是否存在且是学生
+	// 检查被关注用户是否存在
 	var followedUser models.User
 	if err := config.DB.First(&followedUser, followedID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
-	}
-
-	if followedUser.Role != models.RoleStudent {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Can only follow students"})
 		return
 	}
 
