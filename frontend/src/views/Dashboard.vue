@@ -57,50 +57,30 @@
           <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-card class="content-card">
               <div slot="header" class="card-header">
-                <span>最新公开评价</span>
-                <el-button type="text" @click="$router.push('/ratings')">查看更多</el-button>
+                <span>最新公开文章评论</span>
+                <el-button type="text" @click="$router.push('/articles')">查看更多</el-button>
               </div>
               
-              <div v-if="publicRatings.length === 0" class="empty-state">
-                <i class="el-icon-document" />
-                <p>暂无公开评价</p>
+              <div v-if="latestComments.length === 0" class="empty-state">
+                <i class="el-icon-chat-line-square" />
+                <p>暂无文章评论</p>
               </div>
               
-              <div v-else class="rating-list">
+              <div v-else class="comment-list">
                 <div
-                  v-for="rating in publicRatings.slice(0, 5)"
-                  :key="rating.id"
-                  class="rating-item"
+                  v-for="comment in latestComments.slice(0, 5)"
+                  :key="comment.id"
+                  class="comment-item"
                 >
-                  <div class="rating-header">
-                    <span class="rater-name">{{ rating.rater.name }}</span>
-                    <el-rate
-                      v-model="rating.score"
-                      disabled
-                      show-score
-                      text-color="#ff9900"
-                      score-template="{value}"
-                    />
+                  <div class="comment-header">
+                    <span class="commenter-name">{{ comment.user.name || comment.user.username }}</span>
+                    <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
                   </div>
-                  <p class="rating-content">{{ rating.content }}</p>
-                  <div class="rating-footer">
-                    <span class="rating-time">{{ formatTime(rating.created_at) }}</span>
-                    <div class="rating-feedback">
-                      <el-button
-                        size="mini"
-                        type="text"
-                        @click="giveFeedback(rating.id, true)"
-                      >
-                        <i class="el-icon-thumb" /> 有帮助
-                      </el-button>
-                      <el-button
-                        size="mini"
-                        type="text"
-                        @click="giveFeedback(rating.id, false)"
-                      >
-                        <i class="el-icon-thumb" style="transform: rotate(180deg)" /> 没帮助
-                      </el-button>
-                    </div>
+                  <p class="comment-content">{{ comment.content }}</p>
+                  <div class="comment-footer">
+                    <span class="article-title" @click="viewArticle(comment.article_id)">
+                      文章：{{ comment.article ? comment.article.title : '未知文章' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -117,10 +97,9 @@
                 <el-button
                   type="primary"
                   icon="el-icon-edit"
-                  @click="showRatingDialog = true"
-                  v-if="isStudent || isExpert"
+                  @click="$router.push('/articles/create')"
                 >
-                  写评价
+                  创建文章
                 </el-button>
                 
                 <el-button
@@ -246,46 +225,6 @@
       </div>
     </div>
 
-    <!-- 评价对话框 -->
-    <el-dialog
-      title="写评价"
-      :visible.sync="showRatingDialog"
-      width="600px"
-    >
-      <el-form :model="ratingForm" :rules="ratingRules" ref="ratingForm">
-        <el-form-item label="被评价用户" prop="rated_id" for="dashboard-rated-id">
-          <el-input
-            v-model="ratingForm.rated_id"
-            id="dashboard-rated-id"
-            placeholder="请输入用户ID"
-            type="number"
-          />
-        </el-form-item>
-        
-        <el-form-item label="评分" prop="score" for="dashboard-score">
-          <el-rate v-model="ratingForm.score" id="dashboard-score" show-text />
-        </el-form-item>
-        
-        <el-form-item label="评价内容" prop="content" for="dashboard-content">
-          <el-input
-            v-model="ratingForm.content"
-            id="dashboard-content"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入评价内容"
-          />
-        </el-form-item>
-        
-        <el-form-item label="评价设置" for="dashboard-anonymous">
-          <el-checkbox v-model="ratingForm.is_anonymous" id="dashboard-anonymous">匿名评价</el-checkbox>
-        </el-form-item>
-      </el-form>
-      
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="showRatingDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitRating" :loading="submitting">提交</el-button>
-      </div>
-    </el-dialog>
 
     <!-- 评论对话框 -->
     <el-dialog
@@ -403,39 +342,21 @@ export default {
   },
   data() {
     return {
-      showRatingDialog: false,
       showCommentDialog: false,
-      submitting: false,
       commentSubmitting: false,
       selectedFile: null,
       fileComments: [],
       latestArticles: [],
+      latestComments: [],
       commentForm: {
         content: '',
         parent_id: null
-      },
-      ratingForm: {
-        rated_id: '',
-        score: 5,
-        content: '',
-        is_anonymous: false
-      },
-      ratingRules: {
-        rated_id: [
-          { required: true, message: '请输入被评价用户ID', trigger: 'blur' }
-        ],
-        score: [
-          { required: true, message: '请选择评分', trigger: 'change' }
-        ],
-        content: [
-          { required: true, message: '请输入评价内容', trigger: 'blur' }
-        ]
       }
     }
   },
   computed: {
     ...mapGetters('auth', ['currentUser', 'isStudent', 'isExpert', 'isAdmin']),
-    ...mapGetters('rating', ['publicRatings', 'receivedRatings', 'givenRatings']),
+    ...mapGetters('rating', ['receivedRatings', 'givenRatings']),
     ...mapGetters('user', ['following', 'followers', 'publicFiles']),
     
     roleType() {
@@ -460,18 +381,18 @@ export default {
     await this.loadData()
   },
   methods: {
-    ...mapActions('rating', ['fetchPublicRatings', 'fetchUserRatings', 'createRating', 'createFeedback']),
+    ...mapActions('rating', ['fetchUserRatings']),
     ...mapActions('user', ['fetchFollowing', 'fetchFollowers', 'fetchPublicFiles']),
     
     async loadData() {
       try {
         await Promise.all([
-          this.fetchPublicRatings(),
           this.fetchUserRatings(),
           this.fetchFollowing(),
           this.fetchFollowers(),
           this.fetchPublicFiles(),
-          this.loadLatestArticles()
+          this.loadLatestArticles(),
+          this.loadLatestComments()
         ])
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -493,58 +414,46 @@ export default {
     viewArticle(articleId) {
       this.$router.push(`/articles/${articleId}`)
     },
-    
-    async submitRating() {
-      this.$refs.ratingForm.validate(async (valid) => {
-        if (valid) {
-          this.submitting = true
+
+    async loadLatestComments() {
+      try {
+        // 由于后端没有直接获取所有评论的接口，我们需要先获取文章，然后获取评论
+        // 这里简化处理，实际项目中可以在后端添加专门的接口
+        const articlesResponse = await this.$http.get('/articles', {
+          params: { page: 1, page_size: 10 }
+        })
+        const articles = articlesResponse.data.articles || []
+        
+        let allComments = []
+        for (const article of articles.slice(0, 3)) { // 只取前3篇文章的评论
           try {
-            const result = await this.createRating({
-              rated_id: parseInt(this.ratingForm.rated_id),
-              score: this.ratingForm.score,
-              content: this.ratingForm.content,
-              is_anonymous: this.ratingForm.is_anonymous
+            const commentsResponse = await this.$http.get(`/articles/${article.id}/comments`)
+            const comments = commentsResponse.data.comments || []
+            // 扁平化评论（包括回复）
+            comments.forEach(comment => {
+              comment.article = article
+              allComments.push(comment)
+              if (comment.replies) {
+                comment.replies.forEach(reply => {
+                  reply.article = article
+                  allComments.push(reply)
+                })
+              }
             })
-            
-            if (result.success) {
-              this.$message.success('评价提交成功')
-              this.showRatingDialog = false
-              this.resetRatingForm()
-              await this.fetchPublicRatings()
-            } else {
-              this.$message.error(result.message)
-            }
           } catch (error) {
-            this.$message.error('提交失败，请重试')
-          } finally {
-            this.submitting = false
+            // 忽略单个文章评论获取失败的情况
           }
         }
-      })
-    },
-    
-    async giveFeedback(ratingId, isHelpful) {
-      try {
-        const result = await this.createFeedback({ ratingId, isHelpful })
-        if (result.success) {
-          this.$message.success('反馈成功')
-        } else {
-          this.$message.error(result.message)
-        }
+        
+        // 按时间排序，取最新的5条
+        allComments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        this.latestComments = allComments.slice(0, 5)
       } catch (error) {
-        this.$message.error('反馈失败')
+        console.error('Failed to load comments:', error)
+        this.latestComments = []
       }
     },
     
-    resetRatingForm() {
-      this.ratingForm = {
-        rated_id: '',
-        score: 5,
-        content: '',
-        is_anonymous: false
-      }
-      this.$refs.ratingForm?.resetFields()
-    },
     
     formatTime(time) {
       return new Date(time).toLocaleString('zh-CN')
@@ -1111,52 +1020,57 @@ export default {
   margin-bottom: 20px;
 }
 
-.rating-list {
+.comment-list {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.rating-item {
+.comment-item {
   padding: 15px 0;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.rating-item:last-child {
+.comment-item:last-child {
   border-bottom: none;
 }
 
-.rating-header {
+.comment-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.rater-name {
+.commenter-name {
   font-weight: 500;
-  color: #333;
+  color: #667eea;
 }
 
-.rating-content {
-  margin: 10px 0;
-  color: #666;
-  line-height: 1.5;
-}
-
-.rating-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.comment-time {
   font-size: 12px;
-}
-
-.rating-time {
   color: #999;
 }
 
-.rating-feedback {
-  display: flex;
-  gap: 10px;
+.comment-content {
+  margin: 8px 0;
+  color: #666;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.comment-footer {
+  margin-top: 8px;
+}
+
+.article-title {
+  font-size: 12px;
+  color: #409eff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.article-title:hover {
+  text-decoration: underline;
 }
 
 .quick-actions {

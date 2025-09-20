@@ -3,11 +3,6 @@
     <div class="articles">
       <div class="articles-header">
         <h2>文章列表</h2>
-        <div class="header-actions">
-          <el-button type="primary" @click="$router.push('/articles/create')">
-            <i class="el-icon-edit" /> 写文章
-          </el-button>
-        </div>
       </div>
 
       <!-- 筛选器 -->
