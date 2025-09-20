@@ -7,18 +7,20 @@
       </div>
       
       <el-form :model="loginForm" :rules="loginRules" ref="loginForm" class="login-form">
-        <el-form-item prop="username">
+        <el-form-item label="用户名" prop="username" for="login-username">
           <el-input
             v-model="loginForm.username"
+            id="login-username"
             placeholder="用户名或邮箱"
             prefix-icon="el-icon-user"
             size="large"
           />
         </el-form-item>
         
-        <el-form-item prop="password">
+        <el-form-item label="密码" prop="password" for="login-password">
           <el-input
             v-model="loginForm.password"
+            id="login-password"
             type="password"
             placeholder="密码"
             prefix-icon="el-icon-lock"

@@ -204,38 +204,41 @@
       width="600px"
     >
       <el-form :model="createForm" :rules="createRules" ref="createForm">
-        <el-form-item label="被评价用户ID" prop="rated_id">
+        <el-form-item label="被评价用户ID" prop="rated_id" for="rating-rated-id">
           <el-input
             v-model="createForm.rated_id"
+            id="rating-rated-id"
             placeholder="请输入用户ID"
             type="number"
           />
           <div class="form-tip">提示：可以从用户列表或个人主页获取用户ID</div>
         </el-form-item>
         
-        <el-form-item label="文件ID（可选）" prop="file_id">
+        <el-form-item label="文件ID（可选）" prop="file_id" for="rating-file-id">
           <el-input
             v-model="createForm.file_id"
+            id="rating-file-id"
             placeholder="如果是针对特定文件的评价，请输入文件ID"
             type="number"
           />
         </el-form-item>
         
-        <el-form-item label="评分" prop="score">
-          <el-rate v-model="createForm.score" show-text />
+        <el-form-item label="评分" prop="score" for="rating-score">
+          <el-rate v-model="createForm.score" id="rating-score" show-text />
         </el-form-item>
         
-        <el-form-item label="评价内容" prop="content">
+        <el-form-item label="评价内容" prop="content" for="rating-content">
           <el-input
             v-model="createForm.content"
+            id="rating-content"
             type="textarea"
             :rows="4"
             placeholder="请输入详细的评价内容..."
           />
         </el-form-item>
         
-        <el-form-item>
-          <el-checkbox v-model="createForm.is_anonymous">匿名评价</el-checkbox>
+        <el-form-item label="评价设置" for="rating-anonymous">
+          <el-checkbox v-model="createForm.is_anonymous" id="rating-anonymous">匿名评价</el-checkbox>
           <div class="form-tip">匿名评价不会显示您的身份信息</div>
         </el-form-item>
       </el-form>

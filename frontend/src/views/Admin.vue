@@ -183,32 +183,32 @@
       width="500px"
     >
       <el-form :model="createUserForm" :rules="createUserRules" ref="createUserForm">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="createUserForm.username" />
+        <el-form-item label="用户名" prop="username" for="create-username">
+          <el-input v-model="createUserForm.username" id="create-username" />
         </el-form-item>
         
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="createUserForm.email" />
+        <el-form-item label="邮箱" prop="email" for="create-email">
+          <el-input v-model="createUserForm.email" id="create-email" />
         </el-form-item>
         
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="createUserForm.name" />
+        <el-form-item label="姓名" prop="name" for="create-name">
+          <el-input v-model="createUserForm.name" id="create-name" />
         </el-form-item>
         
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="createUserForm.role" style="width: 100%">
+        <el-form-item label="角色" prop="role" for="create-role">
+          <el-select v-model="createUserForm.role" id="create-role" style="width: 100%">
             <el-option label="学生" value="student" />
             <el-option label="专家" value="expert" />
             <el-option label="管理员" value="admin" />
           </el-select>
         </el-form-item>
         
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="createUserForm.password" type="password" />
+        <el-form-item label="密码" prop="password" for="create-password">
+          <el-input v-model="createUserForm.password" id="create-password" type="password" />
         </el-form-item>
         
-        <el-form-item>
-          <el-checkbox v-model="createUserForm.is_active">激活用户</el-checkbox>
+        <el-form-item label="用户状态" for="create-active">
+          <el-checkbox v-model="createUserForm.is_active" id="create-active">激活用户</el-checkbox>
         </el-form-item>
       </el-form>
       
@@ -225,28 +225,28 @@
       width="500px"
     >
       <el-form :model="editUserForm" :rules="editUserRules" ref="editUserForm">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="editUserForm.username" />
+        <el-form-item label="用户名" prop="username" for="edit-username">
+          <el-input v-model="editUserForm.username" id="edit-username" />
         </el-form-item>
         
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="editUserForm.email" />
+        <el-form-item label="邮箱" prop="email" for="edit-email">
+          <el-input v-model="editUserForm.email" id="edit-email" />
         </el-form-item>
         
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="editUserForm.name" />
+        <el-form-item label="姓名" prop="name" for="edit-name">
+          <el-input v-model="editUserForm.name" id="edit-name" />
         </el-form-item>
         
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="editUserForm.role" style="width: 100%">
+        <el-form-item label="角色" prop="role" for="edit-role">
+          <el-select v-model="editUserForm.role" id="edit-role" style="width: 100%">
             <el-option label="学生" value="student" />
             <el-option label="专家" value="expert" />
             <el-option label="管理员" value="admin" />
           </el-select>
         </el-form-item>
         
-        <el-form-item>
-          <el-checkbox v-model="editUserForm.is_active">激活用户</el-checkbox>
+        <el-form-item label="用户状态" for="edit-active">
+          <el-checkbox v-model="editUserForm.is_active" id="edit-active">激活用户</el-checkbox>
         </el-form-item>
       </el-form>
       

@@ -71,7 +71,7 @@
                     <el-button size="mini" type="text" @click="downloadFile(file.id)">
                       下载
                     </el-button>
-                    <el-button size="mini" type="text" @click="deleteFile(file.id)">
+                    <el-button size="mini" type="text" @click="handleDeleteFile(file.id)">
                       删除
                     </el-button>
                   </div>
@@ -159,26 +159,28 @@
       width="500px"
     >
       <el-form :model="editForm" :rules="editRules" ref="editForm">
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="editForm.name" />
+        <el-form-item label="姓名" prop="name" for="edit-name">
+          <el-input v-model="editForm.name" id="edit-name" />
         </el-form-item>
         
-        <el-form-item label="个人简介" prop="bio">
+        <el-form-item label="个人简介" prop="bio" for="edit-bio">
           <el-input
             v-model="editForm.bio"
+            id="edit-bio"
             type="textarea"
             :rows="3"
             placeholder="介绍一下自己..."
           />
         </el-form-item>
         
-        <el-form-item label="头像链接" prop="avatar">
-          <el-input v-model="editForm.avatar" placeholder="头像图片链接" />
+        <el-form-item label="头像链接" prop="avatar" for="edit-avatar">
+          <el-input v-model="editForm.avatar" id="edit-avatar" placeholder="头像图片链接" />
         </el-form-item>
         
-        <el-form-item label="个人链接" prop="links">
+        <el-form-item label="个人链接" prop="links" for="edit-links">
           <el-input
             v-model="editForm.links"
+            id="edit-links"
             placeholder="个人网站、社交媒体等链接"
           />
         </el-form-item>
@@ -186,7 +188,7 @@
       
       <div slot="footer" class="dialog-footer">
         <el-button @click="showEditDialog = false">取消</el-button>
-        <el-button type="primary" @click="updateProfile" :loading="updating">保存</el-button>
+        <el-button type="primary" @click="handleUpdateProfile" :loading="updating">保存</el-button>
       </div>
     </el-dialog>
 
@@ -197,9 +199,10 @@
       width="500px"
     >
       <el-form :model="uploadForm" :rules="uploadRules" ref="uploadForm">
-        <el-form-item label="文件" prop="file">
+        <el-form-item label="文件" prop="file" for="upload-file">
           <el-upload
             ref="upload"
+            id="upload-file"
             :auto-upload="false"
             :on-change="handleFileChange"
             :file-list="fileList"
@@ -210,27 +213,28 @@
           </el-upload>
         </el-form-item>
         
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="uploadForm.title" placeholder="文件标题" />
+        <el-form-item label="标题" prop="title" for="upload-title">
+          <el-input v-model="uploadForm.title" id="upload-title" placeholder="文件标题" />
         </el-form-item>
         
-        <el-form-item label="描述" prop="description">
+        <el-form-item label="描述" prop="description" for="upload-description">
           <el-input
             v-model="uploadForm.description"
+            id="upload-description"
             type="textarea"
             :rows="3"
             placeholder="文件描述..."
           />
         </el-form-item>
         
-        <el-form-item>
-          <el-checkbox v-model="uploadForm.is_public">公开文件</el-checkbox>
+        <el-form-item label="公开设置" for="upload-public">
+          <el-checkbox v-model="uploadForm.is_public" id="upload-public">公开文件</el-checkbox>
         </el-form-item>
       </el-form>
       
       <div slot="footer" class="dialog-footer">
         <el-button @click="showUploadDialog = false">取消</el-button>
-        <el-button type="primary" @click="uploadFile" :loading="uploading">上传</el-button>
+        <el-button type="primary" @click="handleUploadFile" :loading="uploading">上传</el-button>
       </div>
     </el-dialog>
   </Layout>
@@ -329,7 +333,7 @@ export default {
       }
     },
     
-    async updateProfile() {
+    async handleUpdateProfile() {
       this.$refs.editForm.validate(async (valid) => {
         if (valid) {
           this.updating = true
@@ -342,6 +346,7 @@ export default {
               this.$message.error(result.message)
             }
           } catch (error) {
+            console.error('Profile update error:', error)
             this.$message.error('更新失败，请重试')
           } finally {
             this.updating = false
@@ -357,7 +362,7 @@ export default {
       }
     },
     
-    async uploadFile() {
+    async handleUploadFile() {
       this.$refs.uploadForm.validate(async (valid) => {
         if (valid && this.uploadForm.file) {
           this.uploading = true
@@ -377,6 +382,7 @@ export default {
               this.$message.error(result.message)
             }
           } catch (error) {
+            console.error('File upload error:', error)
             this.$message.error('上传失败，请重试')
           } finally {
             this.uploading = false
@@ -387,7 +393,7 @@ export default {
       })
     },
     
-    async deleteFile(fileId) {
+    async handleDeleteFile(fileId) {
       this.$confirm('确定要删除这个文件吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -401,6 +407,7 @@ export default {
             this.$message.error(result.message)
           }
         } catch (error) {
+          console.error('File delete error:', error)
           this.$message.error('删除失败')
         }
       }).catch(() => {})

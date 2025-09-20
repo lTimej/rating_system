@@ -7,36 +7,40 @@
       </div>
       
       <el-form :model="registerForm" :rules="registerRules" ref="registerForm" class="register-form">
-        <el-form-item prop="username">
+        <el-form-item label="用户名" prop="username" for="register-username">
           <el-input
             v-model="registerForm.username"
+            id="register-username"
             placeholder="用户名"
             prefix-icon="el-icon-user"
             size="large"
           />
         </el-form-item>
         
-        <el-form-item prop="email">
+        <el-form-item label="邮箱" prop="email" for="register-email">
           <el-input
             v-model="registerForm.email"
+            id="register-email"
             placeholder="邮箱"
             prefix-icon="el-icon-message"
             size="large"
           />
         </el-form-item>
         
-        <el-form-item prop="name">
+        <el-form-item label="真实姓名" prop="name" for="register-name">
           <el-input
             v-model="registerForm.name"
+            id="register-name"
             placeholder="真实姓名"
             prefix-icon="el-icon-user-solid"
             size="large"
           />
         </el-form-item>
         
-        <el-form-item prop="role">
+        <el-form-item label="角色" prop="role" for="register-role">
           <el-select
             v-model="registerForm.role"
+            id="register-role"
             placeholder="选择角色"
             size="large"
             style="width: 100%"
@@ -46,9 +50,10 @@
           </el-select>
         </el-form-item>
         
-        <el-form-item prop="password">
+        <el-form-item label="密码" prop="password" for="register-password">
           <el-input
             v-model="registerForm.password"
+            id="register-password"
             type="password"
             placeholder="密码"
             prefix-icon="el-icon-lock"
@@ -56,9 +61,10 @@
           />
         </el-form-item>
         
-        <el-form-item prop="confirmPassword">
+        <el-form-item label="确认密码" prop="confirmPassword" for="register-confirm-password">
           <el-input
             v-model="registerForm.confirmPassword"
+            id="register-confirm-password"
             type="password"
             placeholder="确认密码"
             prefix-icon="el-icon-lock"

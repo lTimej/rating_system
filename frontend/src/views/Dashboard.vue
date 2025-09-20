@@ -161,29 +161,31 @@
       width="600px"
     >
       <el-form :model="ratingForm" :rules="ratingRules" ref="ratingForm">
-        <el-form-item label="被评价用户" prop="rated_id">
+        <el-form-item label="被评价用户" prop="rated_id" for="dashboard-rated-id">
           <el-input
             v-model="ratingForm.rated_id"
+            id="dashboard-rated-id"
             placeholder="请输入用户ID"
             type="number"
           />
         </el-form-item>
         
-        <el-form-item label="评分" prop="score">
-          <el-rate v-model="ratingForm.score" show-text />
+        <el-form-item label="评分" prop="score" for="dashboard-score">
+          <el-rate v-model="ratingForm.score" id="dashboard-score" show-text />
         </el-form-item>
         
-        <el-form-item label="评价内容" prop="content">
+        <el-form-item label="评价内容" prop="content" for="dashboard-content">
           <el-input
             v-model="ratingForm.content"
+            id="dashboard-content"
             type="textarea"
             :rows="4"
             placeholder="请输入评价内容"
           />
         </el-form-item>
         
-        <el-form-item>
-          <el-checkbox v-model="ratingForm.is_anonymous">匿名评价</el-checkbox>
+        <el-form-item label="评价设置" for="dashboard-anonymous">
+          <el-checkbox v-model="ratingForm.is_anonymous" id="dashboard-anonymous">匿名评价</el-checkbox>
         </el-form-item>
       </el-form>
       
