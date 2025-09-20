@@ -18,6 +18,7 @@ func SetupRoutes(r *gin.Engine) {
 	commentController := &controllers.CommentController{}
 	articleController := &controllers.ArticleController{}
 	articleCommentController := &controllers.ArticleCommentController{}
+	commentRatingController := &controllers.CommentRatingController{}
 
 	// 公开路由
 	public := r.Group("/api")
@@ -73,6 +74,12 @@ func SetupRoutes(r *gin.Engine) {
 		protected.GET("/articles/:id/comments", articleCommentController.GetArticleComments)
 		protected.GET("/comments/latest", articleCommentController.GetLatestComments)
 		protected.DELETE("/article-comments/:comment_id", articleCommentController.DeleteArticleComment)
+
+		// 评论评价相关
+		protected.POST("/comment-ratings", commentRatingController.CreateCommentRating)
+		protected.GET("/comments/:comment_id/ratings", commentRatingController.GetCommentRatings)
+		protected.GET("/users/:user_id/comment-ratings", commentRatingController.GetUserCommentRatings)
+		protected.DELETE("/comment-ratings/:rating_id", commentRatingController.DeleteCommentRating)
 	}
 
 	// 管理员路由

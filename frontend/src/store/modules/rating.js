@@ -6,6 +6,10 @@ const state = {
   userRatings: {
     received: [],
     given: []
+  },
+  commentRatings: {
+    received: [],
+    given: []
   }
 }
 
@@ -19,6 +23,10 @@ const mutations = {
   SET_USER_RATINGS(state, { received, given }) {
     state.userRatings.received = received || []
     state.userRatings.given = given || []
+  },
+  SET_COMMENT_RATINGS(state, { received, given }) {
+    state.commentRatings.received = received || []
+    state.commentRatings.given = given || []
   },
   ADD_RATING(state, rating) {
     state.ratings.unshift(rating)
@@ -92,6 +100,36 @@ const actions = {
         message: error.response?.data?.error || '反馈失败' 
       }
     }
+  },
+
+  async fetchUserCommentRatings({ commit }, userId = 'me') {
+    try {
+      const response = await axios.get(`/users/${userId}/comment-ratings`)
+      commit('SET_COMMENT_RATINGS', {
+        received: response.data.received_ratings,
+        given: response.data.given_ratings
+      })
+      return { success: true }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '获取评论评价失败' 
+      }
+    }
+  },
+
+  async createCommentRating({ dispatch }, ratingData) {
+    try {
+      const response = await axios.post('/comment-ratings', ratingData)
+      // 重新获取用户的评论评价数据
+      await dispatch('fetchUserCommentRatings')
+      return { success: true, rating: response.data.rating }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.error || '创建评论评价失败' 
+      }
+    }
   }
 }
 
@@ -100,6 +138,8 @@ const getters = {
   publicRatings: state => state.publicRatings,
   receivedRatings: state => state.userRatings.received,
   givenRatings: state => state.userRatings.given,
+  receivedCommentRatings: state => state.commentRatings.received,
+  givenCommentRatings: state => state.commentRatings.given,
   getRatingById: state => id => {
     return state.ratings.find(rating => rating.id === id)
   }

@@ -135,6 +135,14 @@
                       回复
                     </el-button>
                     <el-button 
+                      v-if="comment.user_id !== currentUser.id"
+                      size="mini" 
+                      type="text" 
+                      @click="rateComment(comment)"
+                    >
+                      评价
+                    </el-button>
+                    <el-button 
                       v-if="comment.user_id === currentUser.id"
                       size="mini" 
                       type="text" 
@@ -159,14 +167,24 @@
                         <span class="username">{{ reply.user.name || reply.user.username }}</span>
                         <span class="reply-time">{{ formatTime(reply.created_at) }}</span>
                       </div>
-                      <el-button 
-                        v-if="reply.user_id === currentUser.id"
-                        size="mini" 
-                        type="text" 
-                        @click="deleteComment(reply.id)"
-                      >
-                        删除
-                      </el-button>
+                      <div class="reply-actions">
+                        <el-button 
+                          v-if="reply.user_id !== currentUser.id"
+                          size="mini" 
+                          type="text" 
+                          @click="rateComment(reply)"
+                        >
+                          评价
+                        </el-button>
+                        <el-button 
+                          v-if="reply.user_id === currentUser.id"
+                          size="mini" 
+                          type="text" 
+                          @click="deleteComment(reply.id)"
+                        >
+                          删除
+                        </el-button>
+                      </div>
                     </div>
                     <div class="reply-content">{{ reply.content }}</div>
                   </div>
@@ -183,6 +201,58 @@
         <el-button @click="$router.go(-1)">返回</el-button>
       </div>
     </div>
+
+    <!-- 评价评论对话框 -->
+    <el-dialog
+      title="评价评论"
+      :visible.sync="showRatingDialog"
+      width="500px"
+      :before-close="closeRatingDialog"
+    >
+      <div class="rating-dialog-content">
+        <div class="comment-preview" v-if="selectedComment">
+          <div class="comment-info">
+            <span class="comment-author">{{ selectedComment.user.name || selectedComment.user.username }}</span>
+            <span class="comment-time">{{ formatTime(selectedComment.created_at) }}</span>
+          </div>
+          <div class="comment-text">{{ selectedComment.content }}</div>
+        </div>
+
+        <el-form :model="ratingForm" label-width="80px">
+          <el-form-item label="评分">
+            <el-rate
+              v-model="ratingForm.score"
+              :max="5"
+              show-text
+              :texts="['很差', '较差', '一般', '较好', '很好']"
+            />
+          </el-form-item>
+          
+          <el-form-item label="评价内容">
+            <el-input
+              v-model="ratingForm.content"
+              type="textarea"
+              :rows="4"
+              placeholder="写下你的评价..."
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="closeRatingDialog">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="submitRating"
+          :loading="ratingSubmitting"
+          :disabled="!ratingForm.score"
+        >
+          提交评价
+        </el-button>
+      </div>
+    </el-dialog>
   </Layout>
 </template>
 
@@ -203,10 +273,17 @@ export default {
       likeLoading: false,
       followLoading: false,
       commentSubmitting: false,
+      ratingSubmitting: false,
       isLiked: false,
+      showRatingDialog: false,
+      selectedComment: null,
       commentForm: {
         content: '',
         parent_id: null
+      },
+      ratingForm: {
+        score: 0,
+        content: ''
       }
     }
   },
@@ -230,6 +307,7 @@ export default {
   },
   methods: {
     ...mapActions('user', ['fetchFollowing', 'followUser', 'unfollowUser']),
+    ...mapActions('rating', ['createCommentRating']),
     async loadArticle() {
       this.loading = true
       try {
@@ -397,6 +475,48 @@ export default {
       } finally {
         this.followLoading = false
       }
+    },
+
+    // 评价评论相关方法
+    rateComment(comment) {
+      this.selectedComment = comment
+      this.showRatingDialog = true
+      this.ratingForm.score = 0
+      this.ratingForm.content = ''
+    },
+
+    async submitRating() {
+      if (!this.ratingForm.score) {
+        this.$message.warning('请选择评分')
+        return
+      }
+
+      this.ratingSubmitting = true
+      try {
+        const result = await this.createCommentRating({
+          comment_id: this.selectedComment.id,
+          score: this.ratingForm.score,
+          content: this.ratingForm.content.trim()
+        })
+
+        if (result.success) {
+          this.$message.success('评价提交成功')
+          this.closeRatingDialog()
+        } else {
+          this.$message.error(result.message || '评价提交失败')
+        }
+      } catch (error) {
+        this.$message.error('评价提交失败')
+      } finally {
+        this.ratingSubmitting = false
+      }
+    },
+
+    closeRatingDialog() {
+      this.showRatingDialog = false
+      this.selectedComment = null
+      this.ratingForm.score = 0
+      this.ratingForm.content = ''
     }
   }
 }
@@ -618,6 +738,50 @@ export default {
   color: #666;
   line-height: 1.5;
   font-size: 14px;
+}
+
+.reply-actions {
+  display: flex;
+  gap: 5px;
+}
+
+/* 评价对话框样式 */
+.rating-dialog-content {
+  padding: 10px 0;
+}
+
+.comment-preview {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.comment-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  font-weight: 500;
+  color: #333;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.comment-text {
+  color: #666;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 
 .error-state {

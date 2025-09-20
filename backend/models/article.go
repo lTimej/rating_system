@@ -69,3 +69,20 @@ type ArticleLike struct {
 	Article Article `json:"article,omitempty" gorm:"foreignKey:ArticleID"`
 	User    User    `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
+
+// ArticleCommentRating 文章评论评价模型
+type ArticleCommentRating struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	CommentID uint      `json:"comment_id" gorm:"not null"` // 评论ID
+	RaterID   uint      `json:"rater_id" gorm:"not null"`   // 评价者ID
+	RatedID   uint      `json:"rated_id" gorm:"not null"`   // 被评价者ID（评论作者）
+	Score     int       `json:"score" gorm:"not null"`      // 评分 (1-5)
+	Content   string    `json:"content"`                    // 评价内容（可选）
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// Relationships
+	Comment ArticleComment `json:"comment,omitempty" gorm:"foreignKey:CommentID"`
+	Rater   User           `json:"rater,omitempty" gorm:"foreignKey:RaterID"`
+	Rated   User           `json:"rated,omitempty" gorm:"foreignKey:RatedID"`
+}

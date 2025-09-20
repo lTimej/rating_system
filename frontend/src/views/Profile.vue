@@ -80,21 +80,26 @@
             </el-tab-pane>
             
             <el-tab-pane label="收到的评价" name="received">
-              <div v-if="receivedRatings.length === 0" class="empty-state">
+              <div v-if="allReceivedRatings.length === 0" class="empty-state">
                 <i class="el-icon-star-off" />
                 <p>还没有收到任何评价</p>
               </div>
               
               <div v-else class="rating-list">
                 <div
-                  v-for="rating in receivedRatings"
-                  :key="rating.id"
+                  v-for="rating in allReceivedRatings"
+                  :key="`${rating.type}-${rating.id}`"
                   class="rating-item"
                 >
                   <div class="rating-header">
                     <div class="rater-info">
                       <el-avatar :size="32" :src="rating.rater.avatar" icon="el-icon-user-solid" />
-                      <span class="rater-name">{{ rating.rater.name }}</span>
+                      <div class="rater-details">
+                        <span class="rater-name">{{ rating.rater.name || rating.rater.username }}</span>
+                        <el-tag size="mini" :type="rating.type === 'file' ? 'primary' : 'success'">
+                          {{ rating.typeLabel }}
+                        </el-tag>
+                      </div>
                     </div>
                     <el-rate
                       v-model="rating.score"
@@ -107,6 +112,16 @@
                   <p class="rating-content">{{ rating.content }}</p>
                   <div class="rating-footer">
                     <span class="rating-time">{{ formatTime(rating.created_at) }}</span>
+                    <div class="rating-meta">
+                      <span v-if="rating.type === 'file' && rating.file" class="file-info">
+                        <i class="el-icon-paperclip" />
+                        {{ rating.file.title || rating.file.file_name }}
+                      </span>
+                      <span v-if="rating.type === 'comment' && rating.comment" class="comment-info">
+                        <i class="el-icon-chat-line-square" />
+                        评论：{{ rating.comment.content.substring(0, 30) }}...
+                      </span>
+                    </div>
                     <div class="feedback-stats" v-if="rating.feedbacks && rating.feedbacks.length > 0">
                       <span>{{ getHelpfulCount(rating.feedbacks) }} 人觉得有帮助</span>
                     </div>
@@ -116,21 +131,24 @@
             </el-tab-pane>
             
             <el-tab-pane label="我的评价" name="given">
-              <div v-if="givenRatings.length === 0" class="empty-state">
+              <div v-if="allGivenRatings.length === 0" class="empty-state">
                 <i class="el-icon-edit-outline" />
                 <p>还没有给出任何评价</p>
               </div>
               
               <div v-else class="rating-list">
                 <div
-                  v-for="rating in givenRatings"
-                  :key="rating.id"
+                  v-for="rating in allGivenRatings"
+                  :key="`${rating.type}-${rating.id}`"
                   class="rating-item"
                 >
                   <div class="rating-header">
                     <div class="rated-info">
                       <span class="rated-label">评价给：</span>
-                      <span class="rated-name">{{ rating.rated.name }}</span>
+                      <span class="rated-name">{{ rating.rated.name || rating.rated.username }}</span>
+                      <el-tag size="mini" :type="rating.type === 'file' ? 'primary' : 'success'">
+                        {{ rating.typeLabel }}
+                      </el-tag>
                     </div>
                     <el-rate
                       v-model="rating.score"
@@ -143,6 +161,16 @@
                   <p class="rating-content">{{ rating.content }}</p>
                   <div class="rating-footer">
                     <span class="rating-time">{{ formatTime(rating.created_at) }}</span>
+                    <div class="rating-meta">
+                      <span v-if="rating.type === 'file' && rating.file" class="file-info">
+                        <i class="el-icon-paperclip" />
+                        {{ rating.file.title || rating.file.file_name }}
+                      </span>
+                      <span v-if="rating.type === 'comment' && rating.comment" class="comment-info">
+                        <i class="el-icon-chat-line-square" />
+                        评论：{{ rating.comment.content.substring(0, 30) }}...
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -284,7 +312,40 @@ export default {
   computed: {
     ...mapGetters('auth', ['currentUser']),
     ...mapGetters('user', ['userFiles']),
-    ...mapGetters('rating', ['receivedRatings', 'givenRatings']),
+    ...mapGetters('rating', ['receivedRatings', 'givenRatings', 'receivedCommentRatings', 'givenCommentRatings']),
+    
+    // 合并所有评价（文章评价 + 评论评价）
+    allReceivedRatings() {
+      const fileRatings = this.receivedRatings.map(rating => ({
+        ...rating,
+        type: 'file',
+        typeLabel: '文件评价'
+      }))
+      const commentRatings = this.receivedCommentRatings.map(rating => ({
+        ...rating,
+        type: 'comment',
+        typeLabel: '评论评价'
+      }))
+      return [...fileRatings, ...commentRatings].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      )
+    },
+    
+    allGivenRatings() {
+      const fileRatings = this.givenRatings.map(rating => ({
+        ...rating,
+        type: 'file',
+        typeLabel: '文件评价'
+      }))
+      const commentRatings = this.givenCommentRatings.map(rating => ({
+        ...rating,
+        type: 'comment',
+        typeLabel: '评论评价'
+      }))
+      return [...fileRatings, ...commentRatings].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      )
+    },
     
     roleType() {
       const roleMap = {
@@ -311,13 +372,14 @@ export default {
   methods: {
     ...mapActions('auth', ['updateProfile']),
     ...mapActions('user', ['fetchUserFiles', 'uploadFile', 'deleteFile']),
-    ...mapActions('rating', ['fetchUserRatings']),
+    ...mapActions('rating', ['fetchUserRatings', 'fetchUserCommentRatings']),
     
     async loadData() {
       try {
         await Promise.all([
           this.fetchUserFiles(),
-          this.fetchUserRatings()
+          this.fetchUserRatings(),
+          this.fetchUserCommentRatings()
         ])
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -646,6 +708,27 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.rater-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rating-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.file-info, .comment-info {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .rater-name, .rated-name {

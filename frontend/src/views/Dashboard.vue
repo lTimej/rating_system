@@ -14,7 +14,7 @@
         <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent || isExpert">
           <el-card class="stat-card">
             <div class="stat-content">
-              <div class="stat-number">{{ receivedRatings.length }}</div>
+              <div class="stat-number">{{ totalReceivedRatings }}</div>
               <div class="stat-label">收到的评价</div>
             </div>
             <i class="el-icon-star-on stat-icon" />
@@ -24,7 +24,7 @@
         <el-col :xs="12" :sm="12" :md="6" :lg="6" v-if="isStudent || isExpert">
           <el-card class="stat-card">
             <div class="stat-content">
-              <div class="stat-number">{{ givenRatings.length }}</div>
+              <div class="stat-number">{{ totalGivenRatings }}</div>
               <div class="stat-label">给出的评价</div>
             </div>
             <i class="el-icon-edit stat-icon" />
@@ -431,8 +431,17 @@ export default {
   },
   computed: {
     ...mapGetters('auth', ['currentUser', 'isStudent', 'isExpert', 'isAdmin']),
-    ...mapGetters('rating', ['receivedRatings', 'givenRatings']),
+    ...mapGetters('rating', ['receivedRatings', 'givenRatings', 'receivedCommentRatings', 'givenCommentRatings']),
     ...mapGetters('user', ['following', 'followers', 'publicFiles']),
+    
+    // 计算总评价数（包括文章评价和评论评价）
+    totalReceivedRatings() {
+      return this.receivedRatings.length + this.receivedCommentRatings.length
+    },
+    
+    totalGivenRatings() {
+      return this.givenRatings.length + this.givenCommentRatings.length
+    },
     
     roleType() {
       const roleMap = {
@@ -456,13 +465,14 @@ export default {
     await this.loadData()
   },
   methods: {
-    ...mapActions('rating', ['fetchUserRatings']),
+    ...mapActions('rating', ['fetchUserRatings', 'fetchUserCommentRatings']),
     ...mapActions('user', ['fetchFollowing', 'fetchFollowers', 'fetchPublicFiles', 'followUser', 'unfollowUser']),
     
     async loadData() {
       try {
         await Promise.all([
           this.fetchUserRatings(),
+          this.fetchUserCommentRatings(),
           this.fetchFollowing(),
           this.fetchFollowers(),
           this.fetchPublicFiles(),
