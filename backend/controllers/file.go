@@ -22,10 +22,23 @@ func (fc *FileController) UploadFile(c *gin.Context) {
 
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择要上传的文件"})
 		return
 	}
 	defer file.Close()
+
+	// 检查文件大小 (50MB限制)
+	const maxFileSize = 50 << 20 // 50 MB
+	if header.Size > maxFileSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "文件大小不能超过50MB"})
+		return
+	}
+
+	// 检查文件名长度
+	if len(header.Filename) > 255 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "文件名过长"})
+		return
+	}
 
 	// 创建上传目录
 	uploadDir := "uploads"
