@@ -12,7 +12,7 @@
             v-model="loginForm.username"
             id="login-username"
             placeholder="用户名或邮箱"
-            prefix-icon="el-icon-user"
+          
             size="large"
           />
         </el-form-item>
@@ -23,7 +23,7 @@
             id="login-password"
             type="password"
             placeholder="密码"
-            prefix-icon="el-icon-lock"
+        
             size="large"
             @keyup.enter.native="handleLogin"
           />

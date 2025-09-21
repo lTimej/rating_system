@@ -163,31 +163,20 @@ export default {
     async loadArticles() {
       this.loading = true
       try {
-        let response
-        
-        if (this.isStudent) {
-          // 学生用户获取推送的文章
-          const params = {
-            page: this.currentPage,
-            limit: this.pageSize
-          }
-          response = await this.$http.get('/my/pushed-articles', { params })
-        } else {
-          // 专家和管理员获取所有公开文章
-          const params = {
-            page: this.currentPage,
-            page_size: this.pageSize
-          }
-          
-          if (this.filters.category) {
-            params.category = this.filters.category
-          }
-          if (this.filters.authorName) {
-            params.author_name = this.filters.authorName
-          }
-
-          response = await this.$http.get('/articles', { params })
+        // 所有用户都使用统一的文章接口，后端会根据用户角色返回相应的文章
+        const params = {
+          page: this.currentPage,
+          page_size: this.pageSize
         }
+        
+        if (this.filters.category) {
+          params.category = this.filters.category
+        }
+        if (this.filters.authorName) {
+          params.author_name = this.filters.authorName
+        }
+
+        const response = await this.$http.get('/articles', { params })
         
         this.articles = response.data.articles || []
         this.total = response.data.total || 0

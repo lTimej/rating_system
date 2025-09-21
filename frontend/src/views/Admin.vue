@@ -13,7 +13,7 @@
               <div class="stat-number">{{ stats.total_users || 0 }}</div>
               <div class="stat-label">总用户数</div>
             </div>
-            <i class="el-icon-user stat-icon" />
+           
           </el-card>
         </el-col>
         
@@ -23,7 +23,7 @@
               <div class="stat-number">{{ stats.total_students || 0 }}</div>
               <div class="stat-label">学生用户</div>
             </div>
-            <i class="el-icon-user-solid stat-icon" />
+          
           </el-card>
         </el-col>
         
@@ -33,7 +33,7 @@
               <div class="stat-number">{{ stats.total_experts || 0 }}</div>
               <div class="stat-label">专家用户</div>
             </div>
-            <i class="el-icon-s-custom stat-icon" />
+            <!-- <i class="el-icon-s-custom stat-icon" /> -->
           </el-card>
         </el-col>
         
@@ -43,7 +43,7 @@
               <div class="stat-number">{{ stats.total_articles || 0 }}</div>
               <div class="stat-label">总文章数</div>
             </div>
-            <i class="el-icon-document stat-icon" />
+            <!-- <i class="el-icon-document stat-icon" /> -->
           </el-card>
         </el-col>
       </el-row>

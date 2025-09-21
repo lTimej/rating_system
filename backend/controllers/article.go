@@ -106,10 +106,10 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 
 	// 根据用户角色决定可见的文章
 	if role == models.RoleStudent {
-		// 学生只能看到推送给他们的文章
+		// 学生可以看到推送给他们的文章，以及自己发布的文章
 		query := config.DB.Table("articles").
-			Joins("INNER JOIN article_pushes ON articles.id = article_pushes.article_id").
-			Where("article_pushes.user_id = ? AND articles.status = ?", currentUserID, models.ArticleStatusPublished)
+			Where("(articles.id IN (SELECT article_id FROM article_pushes WHERE user_id = ?) AND articles.status = ?) OR articles.author_id = ?", 
+				currentUserID, models.ArticleStatusPublished, currentUserID)
 
 		// 按分类筛选
 		if category != "" {
@@ -118,7 +118,7 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 
 		// 按作者名称筛选
 		if authorName != "" {
-			query = query.Joins("INNER JOIN users ON articles.author_id = users.id").
+			query = query.Joins("LEFT JOIN users ON articles.author_id = users.id").
 				Where("users.name LIKE ? OR users.username LIKE ?", "%"+authorName+"%", "%"+authorName+"%")
 		}
 
@@ -136,20 +136,20 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 		// 专家和管理员可以看到所有公开且已发布的文章（或自己的文章）
 		query := config.DB.Model(&models.Article{})
 
-		// 只显示公开且已发布的文章（除非是查看自己的文章）
+		// 构建基础查询条件：显示公开且已发布的文章，或者用户自己的文章
+		baseCondition := config.DB.Where("(is_public = ? AND status = ?) OR author_id = ?", 
+			true, models.ArticleStatusPublished, currentUserID)
+		query = query.Where(baseCondition)
+		
+		// 检查是否在搜索自己的文章（用于状态筛选）
 		isViewingOwnArticles := false
 		if authorName != "" {
-			// 检查是否在查看自己的文章
 			var currentUser models.User
 			if err := config.DB.First(&currentUser, currentUserID).Error; err == nil {
 				if currentUser.Name == authorName || currentUser.Username == authorName {
 					isViewingOwnArticles = true
 				}
 			}
-		}
-		
-		if !isViewingOwnArticles {
-			query = query.Where("is_public = ? AND status = ?", true, models.ArticleStatusPublished)
 		}
 
 		// 按分类筛选
@@ -208,18 +208,24 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 
 	// 根据用户角色检查访问权限
 	if role == models.RoleStudent {
-		// 学生只能访问推送给他们的文章
-		var push models.ArticlePush
-		if err := config.DB.Where("article_id = ? AND user_id = ?", articleID, currentUserID).First(&push).Error; err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
-			return
-		}
+		// 学生可以访问推送给他们的文章，或者自己发布的文章
+		isOwnArticle := article.AuthorID == currentUserID.(uint)
 		
-		// 文章必须是已发布状态
-		if article.Status != models.ArticleStatusPublished {
-			c.JSON(http.StatusForbidden, gin.H{"error": "文章不可用"})
-			return
+		if !isOwnArticle {
+			// 不是自己的文章，检查是否是推送的文章
+			var push models.ArticlePush
+			if err := config.DB.Where("article_id = ? AND user_id = ?", articleID, currentUserID).First(&push).Error; err != nil {
+				c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
+				return
+			}
+			
+			// 推送的文章必须是已发布状态
+			if article.Status != models.ArticleStatusPublished {
+				c.JSON(http.StatusForbidden, gin.H{"error": "文章不可用"})
+				return
+			}
 		}
+		// 如果是自己的文章，可以查看任何状态的文章
 	} else {
 		// 专家和管理员的权限检查：只有公开且已发布的文章或作者本人可以查看
 		if (!article.IsPublic || article.Status != models.ArticleStatusPublished) &&

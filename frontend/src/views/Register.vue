@@ -12,7 +12,7 @@
             v-model="registerForm.username"
             id="register-username"
             placeholder="用户名"
-            prefix-icon="el-icon-user"
+          
             size="large"
           />
         </el-form-item>
@@ -22,7 +22,7 @@
             v-model="registerForm.email"
             id="register-email"
             placeholder="邮箱"
-            prefix-icon="el-icon-message"
+      
             size="large"
           />
         </el-form-item>
@@ -32,7 +32,7 @@
             v-model="registerForm.name"
             id="register-name"
             placeholder="真实姓名"
-            prefix-icon="el-icon-user-solid"
+     
             size="large"
           />
         </el-form-item>
@@ -56,7 +56,7 @@
             id="register-password"
             type="password"
             placeholder="密码"
-            prefix-icon="el-icon-lock"
+        
             size="large"
           />
         </el-form-item>
@@ -67,7 +67,7 @@
             id="register-confirm-password"
             type="password"
             placeholder="确认密码"
-            prefix-icon="el-icon-lock"
+      
             size="large"
             @keyup.enter.native="handleRegister"
           />
