@@ -128,6 +128,15 @@
                 <el-option label="已发布" value="published" />
                 <el-option label="已归档" value="archived" />
               </el-select>
+              <el-input
+                v-model="articleFilters.authorName"
+                placeholder="搜索作者名称"
+                clearable
+                @clear="fetchArticles"
+                @keyup.enter="fetchArticles"
+                
+              />
+              <el-button @click="fetchArticles">搜索</el-button>
             </div>
           </div>
           
@@ -291,12 +300,12 @@
             <el-input
               v-model="userSearchKeyword"
               placeholder="搜索用户..."
-              prefix-icon="el-icon-search"
+         
               @input="searchUsers"
               style="width: 300px; margin-right: 10px;"
             />
-            <el-button @click="selectAllUsers" size="small">全选</el-button>
-            <el-button @click="clearSelection" size="small">清空</el-button>
+            <el-button @click="selectAllUsers" size="small" style="width: 300px; margin-right: 10px;">全选</el-button>
+            <el-button @click="clearSelection" size="small" style="width: 300px; margin-right: 10px;">清空</el-button>
           </div>
 
           <div class="user-list">
@@ -372,7 +381,8 @@ export default {
       },
       
       articleFilters: {
-        status: ''
+        status: '',
+        authorName: ''
       },
       
       userPagination: {
@@ -513,6 +523,10 @@ export default {
         
         if (this.articleFilters.status) {
           params.status = this.articleFilters.status
+        }
+        
+        if (this.articleFilters.authorName) {
+          params.author_name = this.articleFilters.authorName
         }
         
         const response = await this.$http.get('/admin/articles', { params })
@@ -1018,6 +1032,10 @@ export default {
   
   .selection-header .el-input {
     width: 100%;
+  }
+
+   .selection-header .el-button {
+    margin-left: 0;
   }
   
   .user-list {

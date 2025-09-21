@@ -11,7 +11,7 @@
 
       <!-- 筛选器 - 只对非学生用户显示 -->
       <div v-if="!isStudent" class="filters">
-        <el-row :gutter="20">
+        <el-row :gutter="20" class="desktop-filters">
           <el-col :span="6">
             <el-select v-model="filters.category" placeholder="选择分类" clearable @change="loadArticles">
               <el-option label="技术" value="tech" />
@@ -22,8 +22,8 @@
           </el-col>
           <el-col :span="6">
             <el-input
-              v-model="filters.authorId"
-              placeholder="作者ID"
+              v-model="filters.authorName"
+              placeholder="作者名称"
               clearable
               @clear="loadArticles"
               @keyup.enter="loadArticles"
@@ -142,7 +142,7 @@ export default {
       followLoading: {},
       filters: {
         category: '',
-        authorId: ''
+        authorName: ''
       }
     }
   },
@@ -182,8 +182,8 @@ export default {
           if (this.filters.category) {
             params.category = this.filters.category
           }
-          if (this.filters.authorId) {
-            params.author_id = this.filters.authorId
+          if (this.filters.authorName) {
+            params.author_name = this.filters.authorName
           }
 
           response = await this.$http.get('/articles', { params })
@@ -231,6 +231,13 @@ export default {
       } catch {
         return tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       }
+    },
+
+    clearFilters() {
+      this.filters.category = ''
+      this.filters.authorName = ''
+      this.currentPage = 1
+      this.loadArticles()
     },
 
     async loadFollowing() {
@@ -428,9 +435,59 @@ export default {
     align-items: stretch;
   }
   
+  /* 移动端筛选器优化 */
+  .filters {
+    padding: 15px !important;
+    margin-bottom: 15px !important;
+  }
+  
   .filters .el-row {
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+  }
+  
+  .filters .el-col {
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+    margin: 3px 0;
+  }
+  
+  /* 移动端选择框和输入框优化 */
+  .filters .el-select,
+  .filters .el-input {
+    width: 100% !important;
+  }
+  
+  .filters .el-select .el-input__inner,
+  .filters .el-input .el-input__inner {
+    height: 44px !important;
+    font-size: 16px !important;
+    padding: 0 15px !important;
+    border-radius: 8px !important;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 移动端按钮优化 */
+  .filters .el-button {
+    width: 100% !important;
+    height: 44px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 选择框下拉箭头优化 */
+  .filters .el-select .el-input .el-select__caret {
+    font-size: 16px;
+  }
+  
+  /* 清除按钮优化 */
+  .filters .el-input__suffix .el-input__clear {
+    font-size: 16px;
+    right: 10px;
   }
   
   .article-item {
@@ -460,6 +517,34 @@ export default {
   
   .meta-right .el-button {
     margin-top: 5px;
+  }
+}
+
+/* 更小屏幕的额外优化 */
+@media (max-width: 480px) {
+  .articles {
+    padding: 10px;
+  }
+  
+  .filters {
+    padding: 12px !important;
+    border-radius: 6px !important;
+  }
+  
+  .filters .el-row {
+    gap: 10px;
+  }
+  
+  .filters .el-select .el-input__inner,
+  .filters .el-input .el-input__inner {
+    height: 42px !important;
+    font-size: 15px !important;
+    padding: 0 12px !important;
+  }
+  
+  .filters .el-button {
+    height: 42px !important;
+    font-size: 15px !important;
   }
 }
 

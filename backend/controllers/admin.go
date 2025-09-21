@@ -268,6 +268,7 @@ func (ac *AdminController) GetArticles(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	status := c.Query("status")
+	authorName := c.Query("author_name")
 
 	offset := (page - 1) * limit
 
@@ -275,15 +276,23 @@ func (ac *AdminController) GetArticles(c *gin.Context) {
 	var total int64
 
 	query := config.DB.Model(&models.Article{})
+	
+	// 按状态筛选
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+	
+	// 按作者名称筛选
+	if authorName != "" {
+		query = query.Joins("LEFT JOIN users ON articles.author_id = users.id").
+			Where("users.name LIKE ? OR users.username LIKE ?", "%"+authorName+"%", "%"+authorName+"%")
 	}
 
 	query.Count(&total)
 
 	if err := query.Offset(offset).Limit(limit).
 		Preload("Author").
-		Order("created_at DESC").
+		Order("articles.created_at DESC").
 		Find(&articles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文章列表失败"})
 		return

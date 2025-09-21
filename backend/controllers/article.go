@@ -80,7 +80,7 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	category := c.Query("category")
-	authorID := c.Query("author_id")
+	authorName := c.Query("author_name")
 	status := c.Query("status")
 
 	if page < 1 {
@@ -116,9 +116,10 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 			query = query.Where("articles.category = ?", category)
 		}
 
-		// 按作者筛选
-		if authorID != "" {
-			query = query.Where("articles.author_id = ?", authorID)
+		// 按作者名称筛选
+		if authorName != "" {
+			query = query.Joins("INNER JOIN users ON articles.author_id = users.id").
+				Where("users.name LIKE ? OR users.username LIKE ?", "%"+authorName+"%", "%"+authorName+"%")
 		}
 
 		query.Count(&total)
@@ -136,7 +137,18 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 		query := config.DB.Model(&models.Article{})
 
 		// 只显示公开且已发布的文章（除非是查看自己的文章）
-		if authorID != strconv.Itoa(int(currentUserID.(uint))) {
+		isViewingOwnArticles := false
+		if authorName != "" {
+			// 检查是否在查看自己的文章
+			var currentUser models.User
+			if err := config.DB.First(&currentUser, currentUserID).Error; err == nil {
+				if currentUser.Name == authorName || currentUser.Username == authorName {
+					isViewingOwnArticles = true
+				}
+			}
+		}
+		
+		if !isViewingOwnArticles {
 			query = query.Where("is_public = ? AND status = ?", true, models.ArticleStatusPublished)
 		}
 
@@ -145,20 +157,21 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 			query = query.Where("category = ?", category)
 		}
 
-		// 按作者筛选
-		if authorID != "" {
-			query = query.Where("author_id = ?", authorID)
+		// 按作者名称筛选
+		if authorName != "" {
+			query = query.Joins("LEFT JOIN users ON articles.author_id = users.id").
+				Where("users.name LIKE ? OR users.username LIKE ?", "%"+authorName+"%", "%"+authorName+"%")
 		}
 
 		// 按状态筛选（仅作者本人可见）
-		if status != "" && authorID == strconv.Itoa(int(currentUserID.(uint))) {
+		if status != "" && isViewingOwnArticles {
 			query = query.Where("status = ?", status)
 		}
 
 		query.Count(&total)
 
 		if err := query.Preload("Author").
-			Order("created_at DESC").
+			Order("articles.created_at DESC").
 			Limit(pageSize).
 			Offset(offset).
 			Find(&articles).Error; err != nil {
