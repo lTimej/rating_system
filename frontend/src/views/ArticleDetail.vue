@@ -47,7 +47,10 @@
                 size="small"
                 :type="isLiked ? 'primary' : 'default'"
                 @click="toggleLike"
+                @touchstart="handleTouchStart"
+                @touchend="handleTouchEnd"
                 :loading="likeLoading"
+                :class="{ 'like-button-active': isLiked }"
               >
                 <i class="el-icon-star-off" /> {{ isLiked ? '已点赞' : '点赞' }}
               </el-button>
@@ -314,9 +317,22 @@ export default {
         const articleId = this.$route.params.id
         const response = await this.$http.get(`/articles/${articleId}`)
         this.article = response.data.article
+        this.isLiked = response.data.is_liked || false
+        
+        // 调试信息（生产环境可移除）
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Debug loadArticle:', {
+            articleId,
+            articleTitle: this.article?.title,
+            isLiked: this.isLiked,
+            likeCount: this.article?.like_count
+          })
+        }
       } catch (error) {
+        console.error('Debug loadArticle error:', error)
         this.$message.error('加载文章失败')
         this.article = null
+        this.isLiked = false
       } finally {
         this.loading = false
       }
@@ -337,20 +353,47 @@ export default {
     async toggleLike() {
       if (!this.article) return
       
+      // 调试信息（生产环境可移除）
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Debug toggleLike - Before:', {
+          articleId: this.article.id,
+          isLiked: this.isLiked,
+          likeCount: this.article.like_count
+        })
+      }
+      
       this.likeLoading = true
       try {
         const response = await this.$http.post(`/articles/${this.article.id}/like`)
-        this.isLiked = response.data.liked
         
-        // 更新点赞数
-        if (this.isLiked) {
-          this.article.like_count++
-        } else {
-          this.article.like_count--
+        // 使用Vue.set确保响应式更新
+        this.$set(this, 'isLiked', response.data.liked)
+        
+        // 更新点赞数，使用Vue.set确保响应式
+        const newLikeCount = response.data.liked ? this.article.like_count + 1 : this.article.like_count - 1
+        this.$set(this.article, 'like_count', newLikeCount)
+        
+        // 在下一个tick强制更新DOM
+        await this.$nextTick()
+        
+        // 移动端额外的强制更新
+        if (this.isMobileDevice()) {
+          this.$forceUpdate()
+        }
+        
+        // 调试信息（生产环境可移除）
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Debug toggleLike - After:', {
+            articleId: this.article.id,
+            isLiked: this.isLiked,
+            likeCount: this.article.like_count,
+            responseData: response.data
+          })
         }
         
         this.$message.success(response.data.message)
       } catch (error) {
+        console.error('Debug toggleLike error:', error)
         this.$message.error('操作失败')
       } finally {
         this.likeLoading = false
@@ -429,6 +472,37 @@ export default {
         other: '其他'
       }
       return categoryMap[category] || category
+    },
+
+    isMobileDevice() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+             window.innerWidth <= 768
+    },
+
+    handleTouchStart() {
+      // 移动端触摸开始时的处理
+      if (this.isMobileDevice()) {
+        // 添加触摸反馈
+        this.$nextTick(() => {
+          const button = this.$el.querySelector('.like-button-active, .el-button--primary, .el-button--default')
+          if (button) {
+            button.style.transform = 'scale(0.95)'
+          }
+        })
+      }
+    },
+
+    handleTouchEnd() {
+      // 移动端触摸结束时的处理
+      if (this.isMobileDevice()) {
+        // 恢复按钮状态
+        this.$nextTick(() => {
+          const button = this.$el.querySelector('.like-button-active, .el-button--primary, .el-button--default')
+          if (button) {
+            button.style.transform = 'scale(1)'
+          }
+        })
+      }
     },
 
     parseTagsArray(tags) {
@@ -815,6 +889,42 @@ export default {
   .article-meta {
     flex-direction: column;
     gap: 15px;
+  }
+  
+  /* 移动端点赞按钮优化 */
+  .meta-right .el-button {
+    min-height: 44px; /* 确保足够的触摸面积 */
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent; /* 移除iOS点击高亮 */
+  }
+  
+  .meta-right .el-button:active {
+    transform: scale(0.95);
+  }
+  
+  .meta-right .el-button.el-button--primary {
+    background-color: #409EFF !important;
+    border-color: #409EFF !important;
+    color: white !important;
+  }
+  
+  .meta-right .el-button.el-button--default {
+    background-color: #f5f7fa !important;
+    border-color: #dcdfe6 !important;
+    color: #606266 !important;
+  }
+  
+  /* 点赞按钮状态样式 */
+  .like-button-active {
+    background-color: #409EFF !important;
+    border-color: #409EFF !important;
+    color: white !important;
+  }
+  
+  .like-button-active:hover,
+  .like-button-active:focus {
+    background-color: #66b1ff !important;
+    border-color: #66b1ff !important;
   }
   
   .article-body {

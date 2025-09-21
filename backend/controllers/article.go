@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"rating_system/config"
 	"rating_system/models"
@@ -221,8 +222,23 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 		article.ViewCount++
 	}
 
+	// 检查当前用户是否已点赞
+	var like models.ArticleLike
+	err := config.DB.Where("article_id = ? AND user_id = ?", article.ID, currentUserID.(uint)).First(&like).Error
+	isLiked := err == nil
+	
+	// 调试信息
+	fmt.Printf("Debug GetArticle - Article ID: %d, User ID: %d, Like Query Error: %v, Is Liked: %t\n", 
+		article.ID, currentUserID.(uint), err, isLiked)
+	
+	// 额外调试：查询所有该文章的点赞记录
+	var allLikes []models.ArticleLike
+	config.DB.Where("article_id = ?", article.ID).Find(&allLikes)
+	fmt.Printf("Debug GetArticle - All likes for article %d: %+v\n", article.ID, allLikes)
+
 	c.JSON(http.StatusOK, gin.H{
-		"article": article,
+		"article":  article,
+		"is_liked": isLiked,
 	})
 }
 
@@ -350,7 +366,10 @@ func (ac *ArticleController) LikeArticle(c *gin.Context) {
 
 	// 检查是否已经点赞
 	var existingLike models.ArticleLike
-	err := config.DB.Where("article_id = ? AND user_id = ?", articleID, userID).First(&existingLike).Error
+	err := config.DB.Where("article_id = ? AND user_id = ?", article.ID, userID.(uint)).First(&existingLike).Error
+
+	fmt.Printf("Debug LikeArticle - Article ID: %d (param: %s), User ID: %d, Query Error: %v\n", 
+		article.ID, articleID, userID.(uint), err)
 
 	if err == gorm.ErrRecordNotFound {
 		// 没有点赞，创建点赞记录
@@ -359,14 +378,17 @@ func (ac *ArticleController) LikeArticle(c *gin.Context) {
 			UserID:    userID.(uint),
 		}
 		if err := config.DB.Create(&like).Error; err != nil {
+			fmt.Printf("Debug LikeArticle - Failed to create like: %v\n", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like article"})
 			return
 		}
+		fmt.Printf("Debug LikeArticle - Like created successfully, ID: %d\n", like.ID)
 		// 增加点赞数
 		config.DB.Model(&article).Update("like_count", gorm.Expr("like_count + 1"))
 		c.JSON(http.StatusOK, gin.H{"message": "Article liked", "liked": true})
 	} else if err == nil {
 		// 已经点赞，取消点赞
+		fmt.Printf("Debug LikeArticle - Removing existing like, ID: %d\n", existingLike.ID)
 		if err := config.DB.Delete(&existingLike).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unlike article"})
 			return
@@ -375,6 +397,7 @@ func (ac *ArticleController) LikeArticle(c *gin.Context) {
 		config.DB.Model(&article).Update("like_count", gorm.Expr("like_count - 1"))
 		c.JSON(http.StatusOK, gin.H{"message": "Article unliked", "liked": false})
 	} else {
+		fmt.Printf("Debug LikeArticle - Database error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 	}
 }

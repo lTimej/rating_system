@@ -9,6 +9,14 @@
             icon="el-icon-menu"
             @click="toggleMobileMenu"
           />
+          <el-button
+            class="back-btn"
+            type="text"
+            icon="el-icon-arrow-left"
+            @click="goBack"
+            v-if="canGoBack"
+            title="返回上一页"
+          />
           <h1>评价系统</h1>
         </div>
         <div class="header-right">
@@ -27,12 +35,19 @@
       </el-header>
       
       <el-container>
+        <!-- 移动端遮罩层 -->
+        <div 
+          class="mobile-overlay" 
+          v-if="isMobile && mobileMenuOpen" 
+          @click="closeMobileMenu"
+        ></div>
+        
         <el-aside 
           :width="sidebarWidth" 
           class="sidebar"
           :class="{ 'mobile-sidebar': isMobile, 'mobile-sidebar-open': mobileMenuOpen }"
+          @click.stop
         >
-          <div class="sidebar-overlay" @click="closeMobileMenu" v-if="isMobile && mobileMenuOpen"></div>
           <div class="sidebar-content">
             <el-menu
               :default-active="$route.path"
@@ -64,7 +79,7 @@
           </div>
         </el-aside>
         
-        <el-main class="main-content" @click="closeAside">
+        <el-main class="main-content">
           <slot />
         </el-main>
       </el-container>
@@ -80,7 +95,8 @@ export default {
   data() {
     return {
       mobileMenuOpen: false,
-      isMobile: false
+      isMobile: false,
+      canGoBack: false
     }
   },
   computed: {
@@ -95,10 +111,19 @@ export default {
   },
   mounted() {
     this.checkMobile()
+    this.updateCanGoBack()
     window.addEventListener('resize', this.checkMobile)
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.checkMobile)
+  },
+  watch: {
+    '$route': {
+      handler() {
+        this.updateCanGoBack()
+      },
+      immediate: true
+    }
   },
   methods: {
     ...mapActions('auth', ['logout']),
@@ -109,12 +134,64 @@ export default {
         this.mobileMenuOpen = false
       }
     },
+
+    updateCanGoBack() {
+      // 检查浏览器历史记录是否可以返回
+      const currentPath = this.$route.path
+      const currentName = this.$route.name
+      
+      // 排除的页面：登录页面、注册页面和首页
+      const excludedPages = ['/login', '/register', '/dashboard', '/']
+      const excludedNames = ['Login', 'Register', 'Dashboard']
+      
+      const isExcludedPage = excludedPages.includes(currentPath) || excludedNames.includes(currentName)
+      
+      // 如果不是排除的页面，则显示返回按钮
+      this.canGoBack = !isExcludedPage
+      
+      // 临时调试信息
+      if (process.env.NODE_ENV === 'development') {
+        console.log('updateCanGoBack:', {
+          currentPath,
+          currentName,
+          isExcludedPage,
+          canGoBack: this.canGoBack
+        })
+      }
+    },
+
+    goBack() {
+      const currentPath = this.$route.path
+      const currentName = this.$route.name
+      
+      // 根据当前页面智能返回
+      if (currentName === 'ArticleDetail') {
+        // 文章详情页返回文章列表
+        this.$router.push('/articles')
+      } else if (currentName === 'ArticleCreate' || currentName === 'ArticleEdit') {
+        // 文章编辑页返回文章列表
+        this.$router.push('/articles')
+      } else if (currentPath.startsWith('/articles/')) {
+        // 其他文章相关页面返回文章列表
+        this.$router.push('/articles')
+      } else {
+        // 其他页面使用浏览器返回
+        if (window.history.length > 1) {
+          this.$router.go(-1)
+        } else {
+          // 如果没有历史记录，返回首页
+          this.$router.push('/dashboard')
+        }
+      }
+    },
     toggleMobileMenu() {
       this.mobileMenuOpen = !this.mobileMenuOpen
     },
     
     closeMobileMenu() {
-      this.mobileMenuOpen = false
+      if (this.isMobile && this.mobileMenuOpen) {
+        this.mobileMenuOpen = false
+      }
     },
     
     handleMenuClick() {
@@ -187,6 +264,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
 .header-left h1 {
@@ -200,6 +278,24 @@ export default {
   display: none;
   font-size: 18px;
   padding: 8px;
+}
+
+.back-btn {
+  font-size: 18px;
+  padding: 8px;
+  color: #409EFF;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn:hover {
+  color: #66b1ff;
+  background-color: rgba(64, 158, 255, 0.1);
 }
 
 .header-right {
@@ -244,8 +340,26 @@ export default {
   background: transparent;
 }
 
-.sidebar-overlay {
-  display: none;
+/* 移动端遮罩层 */
+.mobile-overlay {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .main-content {
@@ -260,12 +374,58 @@ export default {
     padding: 0 15px;
   }
   
+  .header-left {
+    gap: 15px;
+  }
+  
   .header-left h1 {
     font-size: 18px;
+    flex: 1;
   }
   
   .mobile-menu-btn {
     display: block;
+  }
+  
+  .back-btn {
+    font-size: 20px;
+    padding: 12px;
+    min-width: 48px;
+    height: 48px;
+    background-color: rgba(64, 158, 255, 0.1);
+    border: 1px solid rgba(64, 158, 255, 0.3);
+    border-radius: 12px;
+    color: #409EFF;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .back-btn:active {
+    transform: scale(0.95);
+    background-color: rgba(64, 158, 255, 0.2);
+    box-shadow: 0 1px 4px rgba(64, 158, 255, 0.4);
+  }
+  
+  .back-btn:hover {
+    background-color: rgba(64, 158, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  /* 返回按钮进入动画 */
+  .back-btn {
+    animation: slideInLeft 0.3s ease-out;
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
   
   .username {
@@ -292,16 +452,6 @@ export default {
     transform: translateX(0);
   }
   
-  .mobile-sidebar-open .sidebar-overlay {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 200px;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-  }
   
   .main-content {
     padding: 15px;
@@ -314,8 +464,24 @@ export default {
     padding: 0 10px;
   }
   
+  .header-left {
+    gap: 12px;
+  }
+  
   .header-left h1 {
     font-size: 16px;
+    flex: 1;
+  }
+  
+  .back-btn {
+    font-size: 18px;
+    padding: 10px;
+    min-width: 44px;
+    height: 44px;
+    background-color: rgba(64, 158, 255, 0.12);
+    border: 1px solid rgba(64, 158, 255, 0.3);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(64, 158, 255, 0.25);
   }
   
   .main-content {
