@@ -20,53 +20,100 @@ type FileController struct{}
 func (fc *FileController) UploadFile(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
+	// 添加调试日志
+	fmt.Printf("Upload request from user %v\n", userID)
+	fmt.Printf("Content-Type: %s\n", c.GetHeader("Content-Type"))
+	fmt.Printf("Content-Length: %s\n", c.GetHeader("Content-Length"))
+	fmt.Printf("User-Agent: %s\n", c.GetHeader("User-Agent"))
+
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
+		fmt.Printf("FormFile error: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择要上传的文件"})
 		return
 	}
 	defer file.Close()
 
-	// 检查文件大小 (50MB限制)
-	const maxFileSize = 50 << 20 // 50 MB
+	fmt.Printf("File info: name=%s, size=%d, type=%s\n", header.Filename, header.Size, header.Header.Get("Content-Type"))
+
+	// 检查文件大小 (1000MB限制)
+	const maxFileSize = 1000 << 20 // 1000 MB
 	if header.Size > maxFileSize {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "文件大小不能超过50MB"})
+		fmt.Printf("File too large: %d bytes\n", header.Size)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "文件大小不能超过1GB"})
 		return
 	}
 
 	// 检查文件名长度
 	if len(header.Filename) > 255 {
+		fmt.Printf("Filename too long: %d characters\n", len(header.Filename))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "文件名过长"})
 		return
 	}
 
 	// 创建上传目录
 	uploadDir := "uploads"
+	fmt.Printf("Creating upload directory: %s\n", uploadDir)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		fmt.Printf("Failed to create upload directory: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建上传目录失败"})
 		return
+	}
+
+	// 检查目录权限
+	if info, err := os.Stat(uploadDir); err != nil {
+		fmt.Printf("Failed to stat upload directory: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "上传目录不可访问"})
+		return
+	} else {
+		fmt.Printf("Upload directory permissions: %v\n", info.Mode())
 	}
 
 	// 生成唯一文件名
 	ext := filepath.Ext(header.Filename)
 	filename := fmt.Sprintf("%d_%d%s", userID, time.Now().Unix(), ext)
 	filePath := filepath.Join(uploadDir, filename)
+	fmt.Printf("Generated file path: %s\n", filePath)
 
 	// 保存文件
+	fmt.Printf("Creating file: %s\n", filePath)
 	dst, err := os.Create(filePath)
 	if err != nil {
+		fmt.Printf("Failed to create file: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建文件失败"})
 		return
 	}
 	defer dst.Close()
 
+	fmt.Printf("Copying file data...\n")
 	if _, err := io.Copy(dst, file); err != nil {
+		fmt.Printf("Failed to copy file data: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件失败"})
 		return
 	}
+	fmt.Printf("File saved successfully\n")
 
 	// 确定文件类型
 	fileType := getFileType(header.Header.Get("Content-Type"))
+	fmt.Printf("File type determined: %s\n", fileType)
+
+	// 获取表单数据
+	title := c.PostForm("title")
+	description := c.PostForm("description")
+	isPublicStr := c.PostForm("is_public")
+
+	// 处理布尔值转换
+	var isPublic bool
+	if isPublicStr == "true" {
+		isPublic = true
+	} else if isPublicStr == "false" {
+		isPublic = false
+	} else {
+		// 默认为true
+		isPublic = true
+	}
+
+	fmt.Printf("Form data - title: %s, description: %s, is_public: %s (%t)\n", title, description, isPublicStr, isPublic)
 
 	// 保存文件信息到数据库
 	fileModel := models.File{
@@ -76,18 +123,21 @@ func (fc *FileController) UploadFile(c *gin.Context) {
 		FileType:    fileType,
 		FileSize:    header.Size,
 		MimeType:    header.Header.Get("Content-Type"),
-		Title:       c.PostForm("title"),
-		Description: c.PostForm("description"),
-		IsPublic:    c.PostForm("is_public") != "false",
+		Title:       title,
+		Description: description,
+		IsPublic:    isPublic,
 	}
 
+	fmt.Printf("Saving file model to database...\n")
 	if err := config.DB.Create(&fileModel).Error; err != nil {
+		fmt.Printf("Database error: %v\n", err)
 		// 删除已上传的文件
 		os.Remove(filePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件信息失败"})
 		return
 	}
 
+	fmt.Printf("File upload completed successfully, ID: %d\n", fileModel.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "文件上传成功",
 		"file":    fileModel,
@@ -211,7 +261,7 @@ func (fc *FileController) DeleteFile(c *gin.Context) {
 
 func (fc *FileController) GetPublicFiles(c *gin.Context) {
 	var files []models.File
-	
+
 	// 获取所有公开的文件，按创建时间倒序排列
 	if err := config.DB.Where("is_public = ?", true).
 		Preload("User").

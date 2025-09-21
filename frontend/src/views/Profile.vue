@@ -586,7 +586,14 @@ export default {
             if (error.message === 'Upload cancelled') {
               this.$message.info('上传已取消')
             } else {
-              this.$message.error('上传失败，请重试')
+              // 提供更详细的错误信息
+              let errorMessage = '上传失败，请重试'
+              if (error.message === 'Network error') {
+                errorMessage = '网络连接失败，请检查网络后重试'
+              } else if (error.message) {
+                errorMessage = `上传失败：${error.message}`
+              }
+              this.$message.error(errorMessage)
             }
           } finally {
             this.uploading = false
@@ -619,6 +626,9 @@ export default {
         })
         
         xhr.addEventListener('load', () => {
+          console.log('Upload response status:', xhr.status)
+          console.log('Upload response text:', xhr.responseText)
+          
           if (xhr.status === 200) {
             try {
               const response = JSON.parse(xhr.responseText)
@@ -626,30 +636,58 @@ export default {
               this.$store.commit('user/ADD_FILE', response.file)
               resolve({ success: true })
             } catch (error) {
-              reject(error)
+              console.error('Failed to parse success response:', error)
+              reject(new Error('服务器响应格式错误'))
             }
           } else {
             try {
               const errorResponse = JSON.parse(xhr.responseText)
-              resolve({ success: false, message: errorResponse.error })
+              const errorMessage = errorResponse.error || `服务器错误 (${xhr.status})`
+              console.error('Upload failed with error:', errorMessage)
+              resolve({ success: false, message: errorMessage })
             } catch (error) {
-              resolve({ success: false, message: '上传失败' })
+              console.error('Failed to parse error response:', error)
+              resolve({ success: false, message: `上传失败 (HTTP ${xhr.status})` })
             }
           }
         })
         
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error'))
+        xhr.addEventListener('error', (event) => {
+          console.error('Upload network error:', event)
+          reject(new Error('网络连接失败'))
         })
         
         xhr.addEventListener('abort', () => {
+          console.log('Upload aborted')
           reject(new Error('Upload cancelled'))
         })
         
-        // 获取token
+        xhr.addEventListener('timeout', () => {
+          console.error('Upload timeout')
+          reject(new Error('上传超时'))
+        })
+        
+        // 设置超时时间（移动端网络可能较慢）
+        xhr.timeout = 60000 // 60秒超时
+        
+        // 获取token和API地址
         const token = localStorage.getItem('token')
-        xhr.open('POST', `${process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'}/api/files`)
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        const apiBaseUrl = process.env.VUE_APP_API_BASE_URL || window.location.origin
+        const uploadUrl = `${apiBaseUrl}/api/files`
+        
+        console.log('Upload URL:', uploadUrl)
+        console.log('Token exists:', !!token)
+        console.log('FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, typeof value === 'object' ? value.name || 'File' : value]))
+        
+        xhr.open('POST', uploadUrl)
+        
+        // 设置请求头
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        }
+        
+        // 不要设置Content-Type，让浏览器自动设置multipart/form-data边界
+        
         xhr.send(formData)
       })
     },
