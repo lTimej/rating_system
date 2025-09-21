@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"rating_system/config"
@@ -11,24 +12,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func buildFront(engine *gin.Engine) {
-	engine.NoRoute(func(c *gin.Context) {
-		accept := c.Request.Header.Get("Accept")
-		flag := strings.Contains(accept, "text/html")
-		if flag {
-			content, err := ioutil.ReadFile("dist/index.html")
-			if (err) != nil {
-				c.Writer.WriteHeader(404)
-				c.Writer.WriteString("Not Found")
-				return
-			}
-			c.Writer.WriteHeader(200)
-			c.Writer.Header().Add("Accept", "text/html")
-			c.Writer.Write((content))
-			c.Writer.Flush()
-		}
-	})
-	engine.Use(static.Serve("/", static.LocalFile("static/dist", true)))
+func serveSPA(c *gin.Context) {
+	// 检查是否是API请求
+	if strings.HasPrefix(c.Request.URL.Path, "/api") {
+		c.JSON(404, gin.H{"error": "API endpoint not found"})
+		return
+	}
+
+	// 检查请求是否接受HTML
+	accept := c.Request.Header.Get("Accept")
+	if !strings.Contains(accept, "text/html") {
+		c.Status(404)
+		return
+	}
+
+	// 尝试读取index.html文件
+	content, err := ioutil.ReadFile("dist/index.html")
+	if err != nil {
+		fmt.Printf("Error reading dist/index.html: %v\n", err)
+		// 如果找不到dist/index.html，重定向到根路径
+		c.Redirect(302, "/")
+		return
+	}
+
+	// 返回SPA应用
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(200, string(content))
 }
 
 func main() {
@@ -37,6 +46,9 @@ func main() {
 
 	// 创建Gin实例
 	r := gin.Default()
+
+	// 设置文件上传大小限制 (50MB)
+	r.MaxMultipartMemory = 50 << 20 // 50 MB
 
 	// 添加CORS中间件
 	r.Use(func(c *gin.Context) {
@@ -51,33 +63,19 @@ func main() {
 
 		c.Next()
 	})
-	buildFront(r)
 
 	// 设置API路由
 	routes.SetupRoutes(r)
 
-	// // 静态文件服务
-	// r.Static("/uploads", "./uploads")
+	// 静态文件服务
+	r.Static("/uploads", "./uploads")
 
-	// // 前端静态文件服务
-	// r.Static("/static", "./static")
-	// r.StaticFile("/favicon.ico", "./static/favicon.ico")
+	// 前端静态文件服务 - 使用static中间件服务静态资源
+	r.Use(static.Serve("/", static.LocalFile("./static/dist", false)))
 
-	// // 根路径处理
-	// r.GET("/", func(c *gin.Context) {
-	// 	c.File("./static/index.html")
-	// })
-
-	// // 处理前端路由 (Vue Router history mode)
-	// r.NoRoute(func(c *gin.Context) {
-	// 	// 如果是API请求，返回404
-	// 	if strings.HasPrefix(c.Request.URL.Path, "/api") {
-	// 		c.JSON(404, gin.H{"error": "API endpoint not found"})
-	// 		return
-	// 	}
-	// 	// 否则返回前端应用
-	// 	c.File("./static/index.html")
-	// })
+	// 处理前端路由 (Vue Router history mode)
+	// 这个必须放在最后，作为fallback处理所有未匹配的路由
+	r.NoRoute(serveSPA)
 
 	// 启动服务器
 	log.Println("Server starting on :8080")

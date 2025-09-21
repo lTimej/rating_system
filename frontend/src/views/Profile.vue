@@ -954,7 +954,7 @@ export default {
 .file-info, .comment-info {
   font-size: 12px;
   color: #666;
-  display: flex;
+  /* display: flex; */
   align-items: center;
   gap: 4px;
 }
@@ -1220,7 +1220,7 @@ export default {
   }
   
   .file-info {
-    display: flex;
+    /* display: flex; */
     align-items: center;
     gap: 10px;
   }
@@ -1337,7 +1337,7 @@ export default {
 }
 
 .file-info {
-  display: flex;
+  /* display: flex; */
   align-items: center;
   gap: 12px;
 }
