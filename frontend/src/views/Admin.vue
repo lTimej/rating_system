@@ -930,4 +930,152 @@ export default {
 .user-item.already-pushed .el-checkbox {
   cursor: not-allowed;
 }
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .admin {
+    padding: 0;
+  }
+  
+  .page-header {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .page-header h2 {
+    font-size: 20px;
+  }
+  
+  .stats-section {
+    padding: 0 15px;
+    margin-bottom: 15px;
+  }
+  
+  .stat-card {
+    margin-bottom: 15px;
+  }
+  
+  .admin-tabs {
+    margin: 0;
+    border-radius: 0;
+    padding: 15px;
+  }
+  
+  .tab-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .filters {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filters .el-select,
+  .filters .el-input {
+    width: 100%;
+  }
+  
+  /* 表格移动端优化 */
+  .el-table {
+    font-size: 12px;
+  }
+  
+  .el-table th,
+  .el-table td {
+    padding: 8px 4px;
+  }
+  
+  .user-info {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  
+  .user-info .el-avatar {
+    align-self: center;
+  }
+  
+  /* 推送对话框移动端优化 */
+  .push-dialog-content {
+    max-height: 60vh;
+  }
+  
+  .article-info {
+    padding: 12px;
+  }
+  
+  .article-info h4 {
+    font-size: 16px;
+  }
+  
+  .selection-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .selection-header .el-input {
+    width: 100%;
+  }
+  
+  .user-list {
+    max-height: 200px;
+  }
+  
+  .user-item {
+    padding: 12px;
+  }
+  
+  .user-item .user-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .pagination {
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h2 {
+    font-size: 18px;
+  }
+  
+  .stat-number {
+    font-size: 24px;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+  }
+  
+  .admin-tabs {
+    padding: 10px;
+  }
+  
+  .el-table {
+    font-size: 11px;
+  }
+  
+  .el-table th,
+  .el-table td {
+    padding: 6px 2px;
+  }
+  
+  .el-button--mini {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .push-dialog-content {
+    max-height: 50vh;
+  }
+  
+  .user-list {
+    max-height: 150px;
+  }
+}
 </style>

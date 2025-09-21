@@ -64,7 +64,7 @@
           </div>
         </el-aside>
         
-        <el-main class="main-content">
+        <el-main class="main-content" @click="closeAside">
           <slot />
         </el-main>
       </el-container>
@@ -109,7 +109,6 @@ export default {
         this.mobileMenuOpen = false
       }
     },
-    
     toggleMobileMenu() {
       this.mobileMenuOpen = !this.mobileMenuOpen
     },
@@ -136,15 +135,33 @@ export default {
     },
     
     handleLogout() {
-      this.$confirm('确定要退出登录吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        this.logout()
-        this.$message.success('已退出登录')
-        this.$router.push('/login')
-      }).catch(() => {})
+      // 移动端使用更友好的确认方式
+      if (this.isMobile) {
+        this.$msgbox({
+          title: '退出登录',
+          message: '确定要退出登录吗？',
+          showCancelButton: true,
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          center: true,
+          customClass: 'mobile-confirm-dialog'
+        }).then(() => {
+          this.logout()
+          this.$message.success('已退出登录')
+          this.$router.push('/login')
+        }).catch(() => {})
+      } else {
+        this.$confirm('确定要退出登录吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.logout()
+          this.$message.success('已退出登录')
+          this.$router.push('/login')
+        }).catch(() => {})
+      }
     }
   }
 }
@@ -303,6 +320,45 @@ export default {
   
   .main-content {
     padding: 10px;
+  }
+}
+
+/* 移动端确认对话框样式 */
+:deep(.mobile-confirm-dialog) {
+  width: 90% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+}
+
+:deep(.mobile-confirm-dialog .el-message-box__header) {
+  padding: 20px 20px 10px !important;
+}
+
+:deep(.mobile-confirm-dialog .el-message-box__content) {
+  padding: 10px 20px !important;
+  font-size: 16px !important;
+}
+
+:deep(.mobile-confirm-dialog .el-message-box__btns) {
+  padding: 10px 20px 20px !important;
+}
+
+:deep(.mobile-confirm-dialog .el-button) {
+  min-width: 80px !important;
+  height: 40px !important;
+  font-size: 16px !important;
+}
+
+/* 移动端下拉菜单优化 */
+@media (max-width: 768px) {
+  :deep(.el-dropdown-menu) {
+    min-width: 120px !important;
+  }
+  
+  :deep(.el-dropdown-menu .el-dropdown-menu__item) {
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
   }
 }
 </style>

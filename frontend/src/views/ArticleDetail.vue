@@ -835,5 +835,63 @@ export default {
     margin-left: 10px;
     padding-left: 10px;
   }
+  
+  /* 评价对话框移动端优化 */
+  .rating-dialog-content {
+    padding: 5px 0;
+  }
+  
+  .comment-preview {
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+  
+  .comment-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .comment-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .el-form-item__label {
+    font-size: 14px;
+  }
+  
+  .el-rate {
+    margin-bottom: 10px;
+  }
+  
+  .el-textarea__inner {
+    font-size: 14px;
+  }
+}
+
+/* 评价对话框全局移动端样式 */
+@media (max-width: 768px) {
+  :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 0 auto !important;
+  }
+  
+  :deep(.el-dialog__header) {
+    padding: 15px 20px 10px !important;
+  }
+  
+  :deep(.el-dialog__body) {
+    padding: 10px 20px !important;
+  }
+  
+  :deep(.el-dialog__footer) {
+    padding: 10px 20px 15px !important;
+  }
+  
+  :deep(.el-button) {
+    min-width: 70px !important;
+    height: 36px !important;
+  }
 }
 </style>

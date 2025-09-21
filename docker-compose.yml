@@ -10,15 +10,13 @@ services:
     ports:
       - "80:8080"
     volumes:
+      # 数据库文件持久化到宿主机 ./data 目录
       - ./data:/app/data
+      # 上传文件持久化到宿主机 ./uploads 目录
       - ./uploads:/app/uploads
     environment:
       - GIN_MODE=release
       - DB_PATH=/app/data/rating_system.db
     restart: unless-stopped
 
-volumes:
-  data:
-    driver: local
-  uploads:
-    driver: local
+# 使用绑定挂载到宿主机目录，不需要定义命名卷

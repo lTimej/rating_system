@@ -1222,6 +1222,7 @@ export default {
   justify-content: flex-start;
   height: 48px;
   font-size: 14px;
+  margin-left: 0;
 }
 
 /* 移动端响应式样式 */
