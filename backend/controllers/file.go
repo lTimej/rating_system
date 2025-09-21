@@ -43,7 +43,7 @@ func (fc *FileController) UploadFile(c *gin.Context) {
 	// 创建上传目录
 	uploadDir := "uploads"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建上传目录失败"})
 		return
 	}
 
@@ -55,13 +55,13 @@ func (fc *FileController) UploadFile(c *gin.Context) {
 	// 保存文件
 	dst, err := os.Create(filePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建文件失败"})
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, file); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件失败"})
 		return
 	}
 
@@ -84,12 +84,12 @@ func (fc *FileController) UploadFile(c *gin.Context) {
 	if err := config.DB.Create(&fileModel).Error; err != nil {
 		// 删除已上传的文件
 		os.Remove(filePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file info"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件信息失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "File uploaded successfully",
+		"message": "文件上传成功",
 		"file":    fileModel,
 	})
 }
@@ -104,7 +104,7 @@ func (fc *FileController) GetUserFiles(c *gin.Context) {
 	} else {
 		id, err := strconv.ParseUint(userIDParam, 10, 32)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 			return
 		}
 		targetUserID = uint(id)
@@ -119,7 +119,7 @@ func (fc *FileController) GetUserFiles(c *gin.Context) {
 	}
 
 	if err := query.Preload("User").Find(&files).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get files"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文件列表失败"})
 		return
 	}
 
@@ -134,13 +134,13 @@ func (fc *FileController) GetFile(c *gin.Context) {
 
 	var file models.File
 	if err := config.DB.Preload("User").First(&file, fileID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 		return
 	}
 
 	// 检查权限：只有文件所有者或公开文件才能访问
 	if file.UserID != currentUserID.(uint) && !file.IsPublic {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
@@ -155,19 +155,19 @@ func (fc *FileController) DownloadFile(c *gin.Context) {
 
 	var file models.File
 	if err := config.DB.First(&file, fileID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 		return
 	}
 
 	// 检查权限
 	if file.UserID != currentUserID.(uint) && !file.IsPublic {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	// 检查文件是否存在
 	if _, err := os.Stat(file.FilePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found on disk"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "磁盘上未找到文件"})
 		return
 	}
 
@@ -182,19 +182,19 @@ func (fc *FileController) DeleteFile(c *gin.Context) {
 
 	var file models.File
 	if err := config.DB.First(&file, fileID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 		return
 	}
 
 	// 检查权限：只有文件所有者才能删除
 	if file.UserID != currentUserID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	// 删除数据库记录
 	if err := config.DB.Delete(&file).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete file record"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除文件记录失败"})
 		return
 	}
 
@@ -205,7 +205,7 @@ func (fc *FileController) DeleteFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "File deleted successfully",
+		"message": "文件删除成功",
 	})
 }
 
@@ -217,7 +217,7 @@ func (fc *FileController) GetPublicFiles(c *gin.Context) {
 		Preload("User").
 		Order("created_at DESC").
 		Find(&files).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get public files"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取公开文件失败"})
 		return
 	}
 

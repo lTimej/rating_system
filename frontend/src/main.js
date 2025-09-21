@@ -4,13 +4,14 @@ import router from './router'
 import store from './store'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
+import locale from 'element-ui/lib/locale/lang/zh-CN'
 import './assets/mobile.css'
 import axios from 'axios'
 
 Vue.config.productionTip = false
 
-// 配置Element UI
-Vue.use(ElementUI)
+// 配置Element UI中文语言包
+Vue.use(ElementUI, { locale })
 
 // 配置axios
 axios.defaults.baseURL = '/api'

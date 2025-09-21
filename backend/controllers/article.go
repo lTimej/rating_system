@@ -59,18 +59,18 @@ func (ac *ArticleController) CreateArticle(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&article).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create article"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建文章失败"})
 		return
 	}
 
 	// 预加载作者信息
 	if err := config.DB.Preload("Author").First(&article, article.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load article"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "加载文章失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Article created successfully",
+		"message": "文章创建成功",
 		"article": article,
 	})
 }
@@ -94,7 +94,7 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 
 	currentUserID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未认证"})
 		return
 	}
 
@@ -128,7 +128,7 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 			Limit(pageSize).
 			Offset(offset).
 			Find(&articles).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文章列表失败"})
 			return
 		}
 	} else {
@@ -162,7 +162,7 @@ func (ac *ArticleController) GetArticles(c *gin.Context) {
 			Limit(pageSize).
 			Offset(offset).
 			Find(&articles).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文章列表失败"})
 			return
 		}
 	}
@@ -180,7 +180,7 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 	articleID := c.Param("id")
 	currentUserID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未认证"})
 		return
 	}
 
@@ -189,7 +189,7 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 
 	var article models.Article
 	if err := config.DB.Preload("Author").First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
@@ -198,20 +198,20 @@ func (ac *ArticleController) GetArticle(c *gin.Context) {
 		// 学生只能访问推送给他们的文章
 		var push models.ArticlePush
 		if err := config.DB.Where("article_id = ? AND user_id = ?", articleID, currentUserID).First(&push).Error; err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 			return
 		}
 		
 		// 文章必须是已发布状态
 		if article.Status != models.ArticleStatusPublished {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Article not available"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "文章不可用"})
 			return
 		}
 	} else {
 		// 专家和管理员的权限检查：只有公开且已发布的文章或作者本人可以查看
 		if (!article.IsPublic || article.Status != models.ArticleStatusPublished) &&
 			article.AuthorID != currentUserID.(uint) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 			return
 		}
 	}
@@ -249,13 +249,13 @@ func (ac *ArticleController) UpdateArticle(c *gin.Context) {
 
 	var article models.Article
 	if err := config.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
 	// 检查权限：只有作者可以编辑
 	if article.AuthorID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
@@ -308,18 +308,18 @@ func (ac *ArticleController) UpdateArticle(c *gin.Context) {
 	}
 
 	if err := config.DB.Model(&article).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update article"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新文章失败"})
 		return
 	}
 
 	// 重新加载文章数据
 	if err := config.DB.Preload("Author").First(&article, article.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load article"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "加载文章失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Article updated successfully",
+		"message": "文章更新成功",
 		"article": article,
 	})
 }
@@ -331,24 +331,24 @@ func (ac *ArticleController) DeleteArticle(c *gin.Context) {
 
 	var article models.Article
 	if err := config.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
 	// 检查权限：只有作者可以删除
 	if article.AuthorID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	// 软删除文章
 	if err := config.DB.Delete(&article).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete article"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除文章失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Article deleted successfully",
+		"message": "文章删除成功",
 	})
 }
 
@@ -360,7 +360,7 @@ func (ac *ArticleController) LikeArticle(c *gin.Context) {
 	// 检查文章是否存在
 	var article models.Article
 	if err := config.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
@@ -379,25 +379,25 @@ func (ac *ArticleController) LikeArticle(c *gin.Context) {
 		}
 		if err := config.DB.Create(&like).Error; err != nil {
 			fmt.Printf("Debug LikeArticle - Failed to create like: %v\n", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like article"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "点赞文章失败"})
 			return
 		}
 		fmt.Printf("Debug LikeArticle - Like created successfully, ID: %d\n", like.ID)
 		// 增加点赞数
 		config.DB.Model(&article).Update("like_count", gorm.Expr("like_count + 1"))
-		c.JSON(http.StatusOK, gin.H{"message": "Article liked", "liked": true})
+		c.JSON(http.StatusOK, gin.H{"message": "点赞成功", "liked": true})
 	} else if err == nil {
 		// 已经点赞，取消点赞
 		fmt.Printf("Debug LikeArticle - Removing existing like, ID: %d\n", existingLike.ID)
 		if err := config.DB.Delete(&existingLike).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unlike article"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "取消点赞失败"})
 			return
 		}
 		// 减少点赞数
 		config.DB.Model(&article).Update("like_count", gorm.Expr("like_count - 1"))
-		c.JSON(http.StatusOK, gin.H{"message": "Article unliked", "liked": false})
+		c.JSON(http.StatusOK, gin.H{"message": "取消点赞成功", "liked": false})
 	} else {
 		fmt.Printf("Debug LikeArticle - Database error: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
 	}
 }

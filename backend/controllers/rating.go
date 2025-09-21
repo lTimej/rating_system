@@ -32,19 +32,19 @@ func (rc *RatingController) CreateRating(c *gin.Context) {
 	// 检查被评价用户是否存在
 	var ratedUser models.User
 	if err := config.DB.First(&ratedUser, req.RatedID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Rated user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "被评价用户未找到"})
 		return
 	}
 
 	// 不能评价自己
 	if userID.(uint) == req.RatedID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot rate yourself"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不能评价自己"})
 		return
 	}
 
 	// 检查权限：学生只能评价学生，专家可以评价所有人
 	if userRole.(models.UserRole) == models.RoleStudent && ratedUser.Role != models.RoleStudent {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Students can only rate other students"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "学生只能评价其他学生"})
 		return
 	}
 
@@ -52,11 +52,11 @@ func (rc *RatingController) CreateRating(c *gin.Context) {
 	if req.FileID != nil {
 		var file models.File
 		if err := config.DB.First(&file, *req.FileID).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 			return
 		}
 		if file.UserID != req.RatedID {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "File does not belong to the rated user"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "文件不属于被评价用户"})
 			return
 		}
 	}
@@ -72,7 +72,7 @@ func (rc *RatingController) CreateRating(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&rating).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create rating"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建评价失败"})
 		return
 	}
 
@@ -80,7 +80,7 @@ func (rc *RatingController) CreateRating(c *gin.Context) {
 	config.DB.Preload("Rater").Preload("Rated").Preload("File").First(&rating, rating.ID)
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Rating created successfully",
+		"message": "评价创建成功",
 		"rating":  rating,
 	})
 }
@@ -134,13 +134,13 @@ func (rc *RatingController) GetRating(c *gin.Context) {
 
 	var rating models.Rating
 	if err := config.DB.Preload("Rater").Preload("Rated").Preload("File").Preload("Feedbacks").First(&rating, ratingID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Rating not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评价未找到"})
 		return
 	}
 
 	// 检查权限：只有评价者和被评价者可以查看
 	if rating.RaterID != currentUserID.(uint) && rating.RatedID != currentUserID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
@@ -165,14 +165,14 @@ func (rc *RatingController) CreateFeedback(c *gin.Context) {
 	// 检查评价是否存在
 	var rating models.Rating
 	if err := config.DB.First(&rating, ratingID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Rating not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评价未找到"})
 		return
 	}
 
 	// 检查是否已经给过反馈
 	var existingFeedback models.Feedback
 	if err := config.DB.Where("rating_id = ? AND user_id = ?", ratingID, userID).First(&existingFeedback).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Feedback already exists"})
+		c.JSON(http.StatusConflict, gin.H{"error": "反馈已存在"})
 		return
 	}
 
@@ -184,12 +184,12 @@ func (rc *RatingController) CreateFeedback(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&feedback).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create feedback"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建反馈失败"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":  "Feedback created successfully",
+		"message":  "反馈创建成功",
 		"feedback": feedback,
 	})
 }
@@ -207,7 +207,7 @@ func (rc *RatingController) GetPublicRatings(c *gin.Context) {
 		Where("ratings.file_id IS NULL OR files.is_public = ?", true)
 
 	if err := query.Preload("Rater").Preload("File").Preload("Feedbacks").Find(&ratings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ratings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取评价失败"})
 		return
 	}
 

@@ -30,20 +30,20 @@ func (crc *CommentRatingController) CreateCommentRating(c *gin.Context) {
 	// 检查评论是否存在
 	var comment models.ArticleComment
 	if err := config.DB.Preload("User").First(&comment, req.CommentID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评论未找到"})
 		return
 	}
 
 	// 不能评价自己的评论
 	if comment.UserID == userID.(uint) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot rate your own comment"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不能评价自己的评论"})
 		return
 	}
 
 	// 检查是否已经评价过这个评论
 	var existingRating models.ArticleCommentRating
 	if err := config.DB.Where("comment_id = ? AND rater_id = ?", req.CommentID, userID).First(&existingRating).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "You have already rated this comment"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "您已经评价过这条评论"})
 		return
 	}
 
@@ -57,18 +57,18 @@ func (crc *CommentRatingController) CreateCommentRating(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&rating).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create rating"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建评价失败"})
 		return
 	}
 
 	// 预加载关联数据
 	if err := config.DB.Preload("Comment").Preload("Rater").Preload("Rated").First(&rating, rating.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load rating"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "加载评价失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment rating created successfully",
+		"message": "评论评价创建成功",
 		"rating":  rating,
 	})
 }
@@ -83,7 +83,7 @@ func (crc *CommentRatingController) GetCommentRatings(c *gin.Context) {
 		Preload("Rated").
 		Order("created_at DESC").
 		Find(&ratings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ratings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取评价失败"})
 		return
 	}
 
@@ -116,7 +116,7 @@ func (crc *CommentRatingController) GetUserCommentRatings(c *gin.Context) {
 		Preload("Comment").
 		Order("created_at DESC").
 		Find(&receivedRatings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get received ratings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取收到的评价失败"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (crc *CommentRatingController) GetUserCommentRatings(c *gin.Context) {
 		Preload("Comment").
 		Order("created_at DESC").
 		Find(&givenRatings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get given ratings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取给出的评价失败"})
 		return
 	}
 
@@ -144,22 +144,22 @@ func (crc *CommentRatingController) DeleteCommentRating(c *gin.Context) {
 
 	var rating models.ArticleCommentRating
 	if err := config.DB.First(&rating, ratingID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Rating not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评价未找到"})
 		return
 	}
 
 	// 检查权限：只有评价者才能删除
 	if rating.RaterID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	if err := config.DB.Delete(&rating).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete rating"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除评价失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Rating deleted successfully",
+		"message": "评价删除成功",
 	})
 }

@@ -29,12 +29,12 @@ func (acc *ArticleCommentController) CreateArticleComment(c *gin.Context) {
 	// 验证文章是否存在且为公开已发布文章
 	var article models.Article
 	if err := config.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
 	if !article.IsPublic || article.Status != models.ArticleStatusPublished {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot comment on this article"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无法评论此文章"})
 		return
 	}
 
@@ -42,7 +42,7 @@ func (acc *ArticleCommentController) CreateArticleComment(c *gin.Context) {
 	if req.ParentID != nil {
 		var parentComment models.ArticleComment
 		if err := config.DB.Where("id = ? AND article_id = ?", *req.ParentID, articleID).First(&parentComment).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Parent comment not found"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "父评论未找到"})
 			return
 		}
 	}
@@ -57,18 +57,18 @@ func (acc *ArticleCommentController) CreateArticleComment(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建评论失败"})
 		return
 	}
 
 	// 预加载用户信息
 	if err := config.DB.Preload("User").First(&comment, comment.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "加载评论失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment created successfully",
+		"message": "评论创建成功",
 		"comment": comment,
 	})
 }
@@ -81,12 +81,12 @@ func (acc *ArticleCommentController) GetArticleComments(c *gin.Context) {
 	// 验证文章是否存在且为公开已发布文章
 	var article models.Article
 	if err := config.DB.First(&article, articleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
 	if !article.IsPublic || article.Status != models.ArticleStatusPublished {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot view comments of this article"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无法查看此文章的评论"})
 		return
 	}
 
@@ -100,7 +100,7 @@ func (acc *ArticleCommentController) GetArticleComments(c *gin.Context) {
 		}).
 		Order("created_at DESC").
 		Find(&comments).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取评论失败"})
 		return
 	}
 
@@ -119,24 +119,24 @@ func (acc *ArticleCommentController) DeleteArticleComment(c *gin.Context) {
 
 	var comment models.ArticleComment
 	if err := config.DB.First(&comment, commentID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评论未找到"})
 		return
 	}
 
 	// 检查权限：只有评论作者才能删除
 	if comment.UserID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	// 软删除评论
 	if err := config.DB.Delete(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除评论失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment deleted successfully",
+		"message": "评论删除成功",
 	})
 }
 
@@ -197,7 +197,7 @@ func (acc *ArticleCommentController) processCommentVisibility(comments []models.
 func (acc *ArticleCommentController) GetLatestComments(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未认证"})
 		return
 	}
 
@@ -217,7 +217,7 @@ func (acc *ArticleCommentController) GetLatestComments(c *gin.Context) {
 			Order("article_comments.created_at DESC").
 			Limit(10).
 			Find(&comments).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest comments"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取最新评论失败"})
 			return
 		}
 	} else {
@@ -230,7 +230,7 @@ func (acc *ArticleCommentController) GetLatestComments(c *gin.Context) {
 			Order("article_comments.created_at DESC").
 			Limit(10).
 			Find(&comments).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest comments"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取最新评论失败"})
 			return
 		}
 	}

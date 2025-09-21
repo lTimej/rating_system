@@ -29,12 +29,12 @@ func (cc *CommentController) CreateFileComment(c *gin.Context) {
 	// 验证文件是否存在且为公开文件
 	var file models.File
 	if err := config.DB.First(&file, fileID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 		return
 	}
 
 	if !file.IsPublic {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot comment on private file"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无法评论私有文件"})
 		return
 	}
 
@@ -42,7 +42,7 @@ func (cc *CommentController) CreateFileComment(c *gin.Context) {
 	if req.ParentID != nil {
 		var parentComment models.FileComment
 		if err := config.DB.Where("id = ? AND file_id = ?", *req.ParentID, fileID).First(&parentComment).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Parent comment not found"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "父评论未找到"})
 			return
 		}
 	}
@@ -56,18 +56,18 @@ func (cc *CommentController) CreateFileComment(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建评论失败"})
 		return
 	}
 
 	// 预加载用户信息
 	if err := config.DB.Preload("User").First(&comment, comment.ID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "加载评论失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment created successfully",
+		"message": "评论创建成功",
 		"comment": comment,
 	})
 }
@@ -79,12 +79,12 @@ func (cc *CommentController) GetFileComments(c *gin.Context) {
 	// 验证文件是否存在且为公开文件
 	var file models.File
 	if err := config.DB.First(&file, fileID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件未找到"})
 		return
 	}
 
 	if !file.IsPublic {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot view comments of private file"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无法查看私有文件的评论"})
 		return
 	}
 
@@ -97,7 +97,7 @@ func (cc *CommentController) GetFileComments(c *gin.Context) {
 		}).
 		Order("created_at DESC").
 		Find(&comments).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取评论失败"})
 		return
 	}
 
@@ -113,23 +113,23 @@ func (cc *CommentController) DeleteFileComment(c *gin.Context) {
 
 	var comment models.FileComment
 	if err := config.DB.First(&comment, commentID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评论未找到"})
 		return
 	}
 
 	// 检查权限：只有评论作者才能删除
 	if comment.UserID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "访问被拒绝"})
 		return
 	}
 
 	// 软删除评论
 	if err := config.DB.Delete(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除评论失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment deleted successfully",
+		"message": "评论删除成功",
 	})
 }

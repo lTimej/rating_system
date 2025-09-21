@@ -33,7 +33,7 @@ func (ac *AdminController) GetUsers(c *gin.Context) {
 	if err := query.Offset(offset).Limit(limit).
 		Preload("Files").Preload("Follows").Preload("Followers").
 		Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户列表失败"})
 		return
 	}
 
@@ -52,7 +52,7 @@ func (ac *AdminController) GetUser(c *gin.Context) {
 	if err := config.DB.Preload("Files").Preload("Ratings").Preload("Received").
 		Preload("Follows.Followed").Preload("Followers.Follower").
 		First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户未找到"})
 		return
 	}
 
@@ -79,14 +79,14 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	// 检查用户名和邮箱是否已存在
 	var existingUser models.User
 	if err := config.DB.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username or email already exists"})
+		c.JSON(http.StatusConflict, gin.H{"error": "用户名或邮箱已存在"})
 		return
 	}
 
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
 		return
 	}
 
@@ -100,12 +100,12 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "User created successfully",
+		"message": "用户创建成功",
 		"user":    user,
 	})
 }
@@ -128,7 +128,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 
 	var user models.User
 	if err := config.DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户未找到"})
 		return
 	}
 
@@ -136,7 +136,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 	if req.Username != "" && req.Username != user.Username {
 		var existingUser models.User
 		if err := config.DB.Where("username = ? AND id != ?", req.Username, userID).First(&existingUser).Error; err == nil {
-			c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
+			c.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
 			return
 		}
 		user.Username = req.Username
@@ -145,7 +145,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 	if req.Email != "" && req.Email != user.Email {
 		var existingUser models.User
 		if err := config.DB.Where("email = ? AND id != ?", req.Email, userID).First(&existingUser).Error; err == nil {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			c.JSON(http.StatusConflict, gin.H{"error": "邮箱已存在"})
 			return
 		}
 		user.Email = req.Email
@@ -162,12 +162,12 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 	}
 
 	if err := config.DB.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新用户失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "User updated successfully",
+		"message": "用户更新成功",
 		"user":    user,
 	})
 }
@@ -177,18 +177,18 @@ func (ac *AdminController) DeleteUser(c *gin.Context) {
 
 	var user models.User
 	if err := config.DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户未找到"})
 		return
 	}
 
 	// 软删除用户
 	if err := config.DB.Delete(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "User deleted successfully",
+		"message": "用户删除成功",
 	})
 }
 
@@ -206,7 +206,7 @@ func (ac *AdminController) GetRatings(c *gin.Context) {
 	if err := config.DB.Offset(offset).Limit(limit).
 		Preload("Rater").Preload("Rated").Preload("File").Preload("Feedbacks").
 		Find(&ratings).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ratings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取评价列表失败"})
 		return
 	}
 
@@ -223,7 +223,7 @@ func (ac *AdminController) DeleteRating(c *gin.Context) {
 
 	var rating models.Rating
 	if err := config.DB.First(&rating, ratingID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Rating not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "评价未找到"})
 		return
 	}
 
@@ -232,12 +232,12 @@ func (ac *AdminController) DeleteRating(c *gin.Context) {
 
 	// 删除评价
 	if err := config.DB.Delete(&rating).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete rating"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除评价失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Rating deleted successfully",
+		"message": "评价删除成功",
 	})
 }
 
@@ -285,7 +285,7 @@ func (ac *AdminController) GetArticles(c *gin.Context) {
 		Preload("Author").
 		Order("created_at DESC").
 		Find(&articles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文章列表失败"})
 		return
 	}
 
@@ -314,19 +314,19 @@ func (ac *AdminController) PushArticle(c *gin.Context) {
 	// 检查文章是否存在
 	var article models.Article
 	if err := config.DB.First(&article, req.ArticleID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "文章未找到"})
 		return
 	}
 
 	// 检查用户是否存在
 	var users []models.User
 	if err := config.DB.Where("id IN ?", req.UserIDs).Find(&users).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Some users not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "部分用户未找到"})
 		return
 	}
 
 	if len(users) != len(req.UserIDs) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Some users not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "部分用户未找到"})
 		return
 	}
 
@@ -353,7 +353,7 @@ func (ac *AdminController) PushArticle(c *gin.Context) {
 
 	if len(pushes) > 0 {
 		if err := config.DB.Create(&pushes).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push articles"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "推送文章失败"})
 			return
 		}
 	}
@@ -394,7 +394,7 @@ func (ac *AdminController) GetArticlePushes(c *gin.Context) {
 		Preload("Admin").
 		Order("created_at DESC").
 		Find(&pushes).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取推送记录失败"})
 		return
 	}
 
@@ -427,7 +427,7 @@ func (ac *AdminController) GetUserPushedArticles(c *gin.Context) {
 		Offset(offset).
 		Limit(limit).
 		Find(&pushes).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushed articles"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取推送文章失败"})
 		return
 	}
 
@@ -453,7 +453,7 @@ func (ac *AdminController) GetArticlePushedUsers(c *gin.Context) {
 	if err := config.DB.Where("article_id = ?", articleID).
 		Preload("User").
 		Find(&pushes).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pushed users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取推送用户失败"})
 		return
 	}
 
